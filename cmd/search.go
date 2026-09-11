@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/FacileStudio/sonar/internal/config"
@@ -62,22 +62,39 @@ func writeJSON(results []engines.Result) error {
 	return enc.Encode(results)
 }
 
-var (
-	rankStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)
-	titleStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Bold(true)
-	snippetStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
-	urlStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
-	engineStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Faint(true)
-)
+// palette holds the styles for one result list, chosen against the terminal
+// background so colors read on a light or dark terminal alike.
+type palette struct {
+	rank    lipgloss.Style
+	title   lipgloss.Style
+	snippet lipgloss.Style
+	url     lipgloss.Style
+	engine  lipgloss.Style
+}
+
+// makePalette builds styles with adaptive colors: ANSI-safe names that resolve
+// differently for a light and a dark background. Styles render desc messages
+// plainly and strip ANSI when stdout is not a terminal.
+func makePalette() palette {
+	lightDark := lipgloss.LightDark(lipgloss.HasDarkBackground(os.Stdin, os.Stdout))
+	return palette{
+		rank:    lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#3fa45c"), lipgloss.Color("#9bcf6a"))).Bold(true),
+		title:   lipgloss.NewStyle().Bold(true),
+		snippet: lipgloss.NewStyle().Faint(true),
+		url:     lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#5b21b6"), lipgloss.Color("#c39bfa"))),
+		engine:  lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#64748b"), lipgloss.Color("#7190a5"))),
+	}
+}
 
 func writeText(results []engines.Result, query string) {
-	fmt.Printf("sonar: %d results for %q\n", len(results), query)
+	p := makePalette()
+	lipgloss.Println(fmt.Sprintf("sonar: %d results for %s", len(results), query))
 	for i, r := range results {
-		fmt.Printf("%s %s\n", rankStyle.Render(fmt.Sprintf("%d.", i+1)), titleStyle.Render(r.Title))
+		lipgloss.Println(p.rank.Render(fmt.Sprintf("%d.", i+1)) + " " + p.title.Render(r.Title))
 		if r.Snippet != "" {
-			fmt.Printf("   %s\n", snippetStyle.Render(r.Snippet))
+			lipgloss.Println("   " + p.snippet.Render(r.Snippet))
 		}
-		fmt.Printf("   %s   %s\n", urlStyle.Render(r.URL), engineStyle.Render(r.Engine))
+		lipgloss.Println("   " + p.url.Render(r.URL) + "   " + p.engine.Render(r.Engine))
 	}
 }
 

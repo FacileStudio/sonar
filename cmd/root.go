@@ -1,9 +1,10 @@
 package cmd
 
 import (
-	"fmt"
+	"context"
 	"os"
 
+	"charm.land/fang/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -17,22 +18,22 @@ var rootCmd = &cobra.Command{
 		"ranked list. Engines are dispatched in priority order with politeness " +
 		"throttling and per-engine circuit breakers so a block-prone IP is not " +
 		"hammered. Use --json for machine-readable output.",
-	SilenceUsage:      true,
-	Version:           version,
-	Args:              cobra.ArbitraryArgs,
 	DisableAutoGenTag: true,
 }
 
-// Execute runs the sonar command tree and exits non-zero on error.
+// Execute runs the sonar command tree through fang (styled help and errors,
+// --version, man and completion commands) and exits non-zero on error. Fang
+// already renders the styled error, so the wrapper only forwards the exit code.
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, "sonar:", err)
+	if fang.Execute(context.Background(), rootCmd, fang.WithVersion(version)) != nil {
 		os.Exit(1)
 	}
 }
 
 func init() {
-	rootCmd.SetVersionTemplate("{{.Name}} {{.Version}}\n")
 	rootCmd.AddCommand(searchCmd)
 	rootCmd.AddCommand(mcpCmd)
+	rootCmd.AddCommand(configCmd)
+	rootCmd.AddCommand(openCmd)
+	rootCmd.AddCommand(cacheCmd)
 }

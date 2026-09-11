@@ -30,7 +30,7 @@ func buildEngineUnits(cfg *config.Config, client *http.Client) []built {
 	for i, base := range cfg.Searxng {
 		out = append(out, built{
 			prio: cfg.SearxngPriority,
-			eng:  &engines.Searxng{Label: searxngName(cfg.Searxng, i), BaseURL: base, Client: client},
+			eng:  &engines.Searxng{Label: SearxngName(cfg.Searxng, i), BaseURL: base, Client: client},
 		})
 	}
 	return out
@@ -39,7 +39,7 @@ func buildEngineUnits(cfg *config.Config, client *http.Client) []built {
 // searxngName labels a SearXNG instance for the cache and merge layers: the
 // bare name for a single instance, an index suffix when there are several so
 // their caches and breaker identities stay distinct.
-func searxngName(urls []string, i int) string {
+func SearxngName(urls []string, i int) string {
 	if len(urls) > 1 {
 		return fmt.Sprintf("searxng%d", i+1)
 	}
@@ -51,6 +51,12 @@ func searxngName(urls []string, i int) string {
 var needsKey = map[string]bool{
 	"brave": true, "tavily": true, "exa": true, "firecrawl": true, "serpapi": true,
 	"browserbase": true, "brightdata": true, "linkup": true,
+}
+
+// NeedsKey reports whether an engine needs a provider API key to build. Used by
+// the config command to tell a keyed-but-unkeyed engine apart from a scrape one.
+func NeedsKey(name string) bool {
+	return needsKey[name]
 }
 
 // makeEngine builds one engine from its config, or nil when it is a keyed

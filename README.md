@@ -30,10 +30,27 @@ and point `searxng` at your own instances.
 sonar search "circuit breaker pattern"
 sonar search -n 5 "go 1.26 modules"
 sonar search --json "lipgloss colors"
+sonar open 3 "go 1.26 modules"   # open result 3 in the browser
+sonar config                     # effective config: engines, keys, knobs
+sonar cache                      # cached result set count and location
+sonar cache clear                # empty the cache
 ```
 
 `-n, --count N` caps the number of results (default: the config `count`, 10).
 `--json` prints one JSON document on stdout and nothing else.
+
+`sonar open [n] [query...]` runs a search and hands result `n` (default 1) to
+the platform browser (`xdg-open` / `open` / `cmd start`). When no browser is
+available it prints the title and URL instead.
+
+Help pages, usage, errors, `--version` and shell completions are styled by
+[fang](https://github.com/charmbracelet/fang), Charm's cobra starter kit.
+`sonar man` emits a real roff man page and `sonar completion <shell>` prints a
+completion script, both provided by fang.
+
+Output colors are adaptive: result styling picks colors that read on a light or
+dark terminal, and color (and ANSI) is stripped entirely when stdout is not a
+terminal, so piping to a file or `jq` never leaks escape codes.
 
 ## MCP server
 
@@ -79,8 +96,13 @@ searxngPriority: 9
 
 API keys belong in the file or in the environment: `SONAR_<ENGINE>_KEY`
 (`SONAR_BRAVE_KEY`, `SONAR_TAVILY_KEY`, ...). The common provider names are
-read as aliases: `EXA_KEY`, `FIRECRAWL_KEY`, `TAVILY_KEY`, `SERPAPI_API_KEY`.
-The environment is only consulted when the file has no key for that engine.
+read as environment aliases only: `EXA_KEY`, `FIRECRAWL_KEY`, `TAVILY_KEY`,
+`SERPAPI_API_KEY`. sonar also reads keys and the Bright Data zone from
+[tiroir](https://github.com/FacileStudio/tiroir-cli) under the same
+`SONAR_<ENGINE>_KEY` / `SONAR_BRIGHTDATA_ZONE` names, which is what makes the
+MCP server work from a bare spawn — it inherits no shell exports, so without
+the tiroir fallback it would silently skip every keyed engine. Precedence:
+config file, then environment, then tiroir.
 
 ## Exit codes
 

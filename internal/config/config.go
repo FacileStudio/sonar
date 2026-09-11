@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FacileStudio/sonar/internal/tiroir"
 	"gopkg.in/yaml.v3"
 )
 
@@ -102,8 +103,25 @@ func expandTilde(cfg *Config) {
 func applyEnv(cfg *Config) {
 	for name, e := range cfg.Engines {
 		fillKeyFromEnv(name, e)
+		fillKeyFromTiroir(name, e)
 	}
 	fillBrightdataZone(cfg)
+}
+
+// fillKeyFromTiroir fills an engine's key from tiroir when neither the config
+// file nor the environment carries one. An MCP-spawned process inherits no
+// shell exports, so without this a bare launch would silently skip every keyed
+// engine. Only the canonical SONAR_<NAME>_KEY name is consulted, so the sonar
+// keys stay namespaced and never collide with generic provider keys. tiroir is
+// reached only when the key is still empty, and a missing tiroir (or a key
+// absent from it) leaves the key empty without error.
+func fillKeyFromTiroir(name string, e *EngineDef) {
+	if e.APIKey != "" {
+		return
+	}
+	if v := tiroir.Get(tiroir.CanonicalKey(name)); v != "" {
+		e.APIKey = v
+	}
 }
 
 // fillKeyFromEnv sets an engine's empty key from the first env var that names
@@ -113,7 +131,7 @@ func fillKeyFromEnv(name string, e *EngineDef) {
 	if e.APIKey != "" {
 		return
 	}
-	for _, env := range engineEnvCandidates(name) {
+	for _, env := range tiroir.EnvCandidates(name) {
 		if key := os.Getenv(env); key != "" {
 			e.APIKey = key
 			break
@@ -123,6 +141,8 @@ func fillKeyFromEnv(name string, e *EngineDef) {
 
 // fillBrightdataZone fills the Bright Data SERP zone from its env var when the
 // config leaves it empty, so the machine token never has to sit in the file.
+// Falls back to tiroir for the same reason the keys do: a bare MCP-spawned
+// process inherits no shell exports.
 func fillBrightdataZone(cfg *Config) {
 	bd := cfg.Engines["brightdata"]
 	if bd == nil || bd.Zone != "" {
@@ -130,33 +150,9 @@ func fillBrightdataZone(cfg *Config) {
 	}
 	if z := os.Getenv("BRIGHTDATA_ZONE"); z != "" {
 		bd.Zone = z
+		return
 	}
-}
-
-// engineEnvCandidates lists the env vars a key may live in: the canonical
-// SONAR_<NAME>_KEY plus the common provider-generic names, so keys stored in
-// tiroir under their bare names (EXA_KEY, FIRECRAWL_KEY, ...) are picked up
-// without renaming.
-func engineEnvCandidates(name string) []string {
-	canonical := "SONAR_" + strings.ToUpper(name) + "_KEY"
-	switch name {
-	case "exa":
-		return []string{canonical, "EXA_KEY"}
-	case "firecrawl":
-		return []string{canonical, "FIRECRAWL_KEY"}
-	case "tavily":
-		return []string{canonical, "TAVILY_KEY"}
-	case "serpapi":
-		return []string{canonical, "SERPAPI_API_KEY", "SERPAPI_KEY"}
-	case "brave":
-		return []string{canonical, "BRAVE_KEY"}
-	case "browserbase":
-		return []string{canonical, "BROWSERBASE_KEY", "BROWSERBASE_API_KEY"}
-	case "brightdata":
-		return []string{canonical, "BRIGHTDATA_KEY", "BRIGHTDATA_API_KEY"}
-	case "linkup":
-		return []string{canonical, "LINKUP_KEY", "LINKUP_API_KEY"}
-	default:
-		return []string{canonical}
+	if z := tiroir.Get("SONAR_BRIGHTDATA_ZONE"); z != "" {
+		bd.Zone = z
 	}
 }
