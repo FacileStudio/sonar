@@ -34,6 +34,7 @@ func init() {
 	rootCmd.SetVersionTemplate("{{.Name}} {{.Version}}\n")
 	rootCmd.AddCommand(searchCmd)
 	rootCmd.AddCommand(mcpCmd)
+	rootCmd.AddCommand(installCmd)
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(openCmd)
 	rootCmd.AddCommand(cacheCmd)
