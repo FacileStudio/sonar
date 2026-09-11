@@ -57,6 +57,11 @@ func buildEngineUnits(cfg *config.Config, client *http.Client) []built {
 				continue
 			}
 			out = append(out, built{prio: def.Priority, eng: &engines.BrightData{Key: def.APIKey, Zone: def.Zone, Client: client, Count: def.Count}})
+		case "linkup":
+			if def.APIKey == "" {
+				continue
+			}
+			out = append(out, built{prio: def.Priority, eng: &engines.Linkup{Key: def.APIKey, Client: client, Count: def.Count}})
 		case "furet":
 			base := def.BaseURL
 			if base == "" {

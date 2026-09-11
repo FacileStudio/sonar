@@ -53,9 +53,10 @@ func Default() *Config {
 			"serpapi":     {Enabled: false, Priority: 5, Count: 10},
 			"browserbase": {Enabled: false, Priority: 6, Count: 10},
 			"brightdata":  {Enabled: false, Priority: 7, Count: 10},
-			"furet":       {Enabled: true, Priority: 8, BaseURL: "https://furet.facile.studio"},
-			"bing":        {Enabled: false, Priority: 9, Count: 10},
-			"ddg":         {Enabled: false, Priority: 10, Count: 10},
+			"linkup":      {Enabled: false, Priority: 8, Count: 10},
+			"furet":       {Enabled: true, Priority: 9, BaseURL: "https://furet.facile.studio"},
+			"bing":        {Enabled: false, Priority: 10, Count: 10},
+			"ddg":         {Enabled: false, Priority: 11, Count: 10},
 		},
 	}
 }
@@ -134,6 +135,8 @@ func engineEnvCandidates(name string) []string {
 		return []string{canonical, "BROWSERBASE_KEY", "BROWSERBASE_API_KEY"}
 	case "brightdata":
 		return []string{canonical, "BRIGHTDATA_KEY", "BRIGHTDATA_API_KEY"}
+	case "linkup":
+		return []string{canonical, "LINKUP_KEY", "LINKUP_API_KEY"}
 	default:
 		return []string{canonical}
 	}
