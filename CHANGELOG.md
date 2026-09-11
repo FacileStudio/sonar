@@ -4,6 +4,13 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.8.0]
+
+### Added
+
+- `sonar search` shows a spinner on stderr while the engines run, so the
+  wait is visible without polluting stdout or `--json` output.
+
 ## [v0.7.0]
 
 ### Added
