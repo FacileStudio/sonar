@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
 	"github.com/FacileStudio/sonar/internal/config"
 	"github.com/FacileStudio/sonar/internal/engines"
-	"github.com/FacileStudio/sonar/internal/merge"
 	"github.com/FacileStudio/sonar/internal/search"
 )
 
@@ -43,20 +41,14 @@ func runSearch(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	count := cfg.DefaultCount
 	if flagCount > 0 {
-		cfg.DefaultCount = flagCount
+		count = flagCount
 	}
-	disp, err := search.NewDispatcher(cfg)
-	if err != nil {
-		return fmt.Errorf("engine setup: %w", err)
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.TimeoutSeconds)*2*time.Second)
-	defer cancel()
-	results, err := disp.Search(ctx, query, cfg.DefaultCount)
+	results, err := search.Query(context.Background(), cfg, query, count)
 	if err != nil {
 		return err
 	}
-	results = merge.Rank(results, cfg.DefaultCount)
 	if flagJSON {
 		return writeJSON(results)
 	}

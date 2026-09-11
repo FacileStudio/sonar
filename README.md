@@ -32,6 +32,29 @@ sonar search --json "lipgloss colors"
 `-n, --count N` caps the number of results (default: the config `count`, 10).
 `--json` prints one JSON document on stdout and nothing else.
 
+## MCP server
+
+`sonar mcp` serves the search tool to an agent over MCP's stdio transport. An
+agent launches the binary as a subprocess and speaks JSON-RPC over stdin and
+stdout; nothing else is printed to the terminal.
+
+For nacelle, add a `sonar` entry beside the others under `mcp:` in
+`~/.nacelle.yml`:
+
+```yaml
+mcp:
+  sonar:
+    command: sonar
+    args: [mcp]
+```
+
+The tool is `search(query, count)`: it runs the same dispatch, dedupe and
+ranking as `sonar search`, so both surfaces return identical results for the
+same query. Results are cached and throttled exactly as on the CLI. API keys
+are read from the same place the CLI reads them, so `eval "$(tiroir export)"`
+in the shell that launches the agent is still what makes the keyed engines
+fire.
+
 ## Configuration
 
 `~/.config/sonar/config.yml`, or the path in `SONAR_CONFIG`. A missing file is

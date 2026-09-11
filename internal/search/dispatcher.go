@@ -6,6 +6,7 @@ package search
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sort"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/FacileStudio/sonar/internal/config"
 	"github.com/FacileStudio/sonar/internal/engines"
 	"github.com/FacileStudio/sonar/internal/httpc"
+	"github.com/FacileStudio/sonar/internal/merge"
 	"github.com/FacileStudio/sonar/internal/politeness"
 )
 
@@ -27,6 +29,24 @@ type Dispatcher struct {
 	order    []unit
 	cache    *cache.Cache
 	throttle *politeness.Throttle
+}
+
+// Query runs one full ranked search for a user-facing query: build the
+// dispatcher from config, search under the doubled timeout, then rank and cap
+// the survivors. Shared by the search command and the MCP server so both
+// surfaces return identical results for the same query.
+func Query(ctx context.Context, cfg *config.Config, query string, count int) ([]engines.Result, error) {
+	d, err := NewDispatcher(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("engine setup: %w", err)
+	}
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(cfg.TimeoutSeconds)*2*time.Second)
+	defer cancel()
+	results, err := d.Search(ctx, query, count)
+	if err != nil {
+		return nil, err
+	}
+	return merge.Rank(results, count), nil
 }
 
 // NewDispatcher builds a dispatcher from config, wiring each enabled engine
