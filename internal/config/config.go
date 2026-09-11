@@ -70,18 +70,18 @@ func Load(path string) (*Config, error) {
 		return cfg, nil
 	}
 	b, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return cfg, nil
+	if err == nil {
+		if perr := yaml.Unmarshal(b, cfg); perr != nil {
+			return nil, fmt.Errorf("parse %s: %w", path, perr)
 		}
-		return nil, err
+		expandTilde(cfg)
+		applyEnv(cfg)
+		return cfg, nil
 	}
-	if err := yaml.Unmarshal(b, cfg); err != nil {
-		return nil, fmt.Errorf("parse %s: %w", path, err)
+	if os.IsNotExist(err) {
+		return cfg, nil
 	}
-	expandTilde(cfg)
-	applyEnv(cfg)
-	return cfg, nil
+	return nil, err
 }
 
 // expandTilde turns a leading "~/" in CacheDir into the user's home directory,
@@ -97,20 +97,35 @@ func expandTilde(cfg *Config) {
 
 func applyEnv(cfg *Config) {
 	for name, e := range cfg.Engines {
-		if e.APIKey != "" {
-			continue
-		}
-		for _, env := range engineEnvCandidates(name) {
-			if key := os.Getenv(env); key != "" {
-				e.APIKey = key
-				break
-			}
+		fillKeyFromEnv(name, e)
+	}
+	fillBrightdataZone(cfg)
+}
+
+// fillKeyFromEnv sets an engine's empty key from the first env var that names
+// a candidate for it. Returns once a key is set so a later candidate never
+// overwrites an earlier one.
+func fillKeyFromEnv(name string, e *EngineDef) {
+	if e.APIKey != "" {
+		return
+	}
+	for _, env := range engineEnvCandidates(name) {
+		if key := os.Getenv(env); key != "" {
+			e.APIKey = key
+			break
 		}
 	}
-	if bd := cfg.Engines["brightdata"]; bd != nil && bd.Zone == "" {
-		if z := os.Getenv("BRIGHTDATA_ZONE"); z != "" {
-			bd.Zone = z
-		}
+}
+
+// fillBrightdataZone fills the Bright Data SERP zone from its env var when the
+// config leaves it empty, so the machine token never has to sit in the file.
+func fillBrightdataZone(cfg *Config) {
+	bd := cfg.Engines["brightdata"]
+	if bd == nil || bd.Zone != "" {
+		return
+	}
+	if z := os.Getenv("BRIGHTDATA_ZONE"); z != "" {
+		bd.Zone = z
 	}
 }
 

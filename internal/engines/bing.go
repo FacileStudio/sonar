@@ -62,27 +62,35 @@ func parseBing(page string) []Result {
 		if i+1 < len(idx) {
 			end = idx[i+1][0]
 		}
-		block := page[start[0]:end]
-		h2 := reH2.FindString(block)
-		if h2 == "" {
-			continue
-		}
-		title := html2text(h2)
-		href := ""
-		if m := reHref.FindStringSubmatch(h2); m != nil {
-			href = html2text(m[1])
-		}
-		url := href
-		if m := reCite.FindStringSubmatch(block); m != nil {
-			url = strings.Split(html2text(m[1]), " › ")[0]
-		}
-		snippet := ""
-		if m := rePara.FindStringSubmatch(block); m != nil {
-			snippet = html2text(m[1])
-		}
-		if title != "" {
-			out = append(out, Result{Title: title, URL: url, Snippet: snippet, Engine: "bing"})
+		if r, ok := bingHit(page[start[0]:end]); ok {
+			out = append(out, r)
 		}
 	}
 	return out
+}
+
+// bingHit parses one result block: the h2 is the title and holds the href, the
+// cite host is the real URL's authority (the href is a redirect wrapper), and
+// the p element is the snippet. Blocks without a title are skipped.
+func bingHit(block string) (Result, bool) {
+	h2 := reH2.FindString(block)
+	if h2 == "" {
+		return Result{}, false
+	}
+	title := html2text(h2)
+	if title == "" {
+		return Result{}, false
+	}
+	url := ""
+	if m := reHref.FindStringSubmatch(h2); m != nil {
+		url = html2text(m[1])
+	}
+	if m := reCite.FindStringSubmatch(block); m != nil {
+		url = strings.Split(html2text(m[1]), " › ")[0]
+	}
+	snippet := ""
+	if m := rePara.FindStringSubmatch(block); m != nil {
+		snippet = html2text(m[1])
+	}
+	return Result{Title: title, URL: url, Snippet: snippet, Engine: "bing"}, true
 }

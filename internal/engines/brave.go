@@ -2,7 +2,6 @@ package engines
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -43,23 +42,9 @@ func (b *Brave) Search(ctx context.Context, query string, count int) ([]Result, 
 	httpc.Fingerprint(req.Header)
 	req.Header.Set("X-Subscription-Token", b.Key)
 	req.Header.Set("Accept", "application/json")
-	res, err := b.Client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrTransient, err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode == http.StatusUnauthorized || res.StatusCode == http.StatusForbidden {
-		return nil, ErrBlocked
-	}
-	if res.StatusCode == http.StatusTooManyRequests || res.StatusCode >= 500 {
-		return nil, ErrTransient
-	}
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: status %d", ErrTransient, res.StatusCode)
-	}
 	var parsed braveResponse
-	if err := json.NewDecoder(res.Body).Decode(&parsed); err != nil {
-		return nil, fmt.Errorf("%w: decode: %v", ErrTransient, err)
+	if derr := decode(b.Client, req, &parsed, 0); derr != nil {
+		return nil, derr
 	}
 	out := make([]Result, 0, len(parsed.Web.Results))
 	for _, r := range parsed.Web.Results {

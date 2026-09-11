@@ -36,6 +36,8 @@ type linkupResponse struct {
 	} `json:"results"`
 }
 
+const linkupNoCredit = http.StatusPaymentRequired
+
 func (l *Linkup) Search(ctx context.Context, query string, count int) ([]Result, error) {
 	if l.Key == "" {
 		return nil, ErrBlocked
@@ -54,22 +56,9 @@ func (l *Linkup) Search(ctx context.Context, query string, count int) ([]Result,
 	httpc.Fingerprint(req.Header)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+l.Key)
-	res, err := l.Client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrTransient, err)
-	}
-	defer res.Body.Close()
-	switch {
-	case res.StatusCode == http.StatusUnauthorized || res.StatusCode == http.StatusForbidden || res.StatusCode == http.StatusPaymentRequired:
-		return nil, ErrBlocked
-	case res.StatusCode == http.StatusTooManyRequests || res.StatusCode >= 500:
-		return nil, ErrTransient
-	case res.StatusCode != http.StatusOK:
-		return nil, fmt.Errorf("%w: status %d", ErrTransient, res.StatusCode)
-	}
 	var parsed linkupResponse
-	if err := json.NewDecoder(res.Body).Decode(&parsed); err != nil {
-		return nil, fmt.Errorf("%w: decode: %v", ErrTransient, err)
+	if derr := decode(l.Client, req, &parsed, linkupNoCredit); derr != nil {
+		return nil, derr
 	}
 	out := make([]Result, 0, len(parsed.Results))
 	for _, r := range parsed.Results {

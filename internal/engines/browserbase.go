@@ -49,24 +49,9 @@ func (b *Browserbase) Search(ctx context.Context, query string, count int) ([]Re
 	httpc.Fingerprint(req.Header)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-bb-api-key", b.Key)
-	res, err := b.Client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrTransient, err)
-	}
-	defer res.Body.Close()
-	switch {
-	case res.StatusCode == http.StatusForbidden:
-		return nil, ErrBlocked
-	case res.StatusCode == http.StatusUnauthorized:
-		return nil, ErrBlocked
-	case res.StatusCode == http.StatusTooManyRequests || res.StatusCode == http.StatusRequestTimeout || res.StatusCode >= 500:
-		return nil, ErrTransient
-	case res.StatusCode != http.StatusOK:
-		return nil, fmt.Errorf("%w: status %d", ErrTransient, res.StatusCode)
-	}
 	var parsed browserbaseResponse
-	if err := json.NewDecoder(res.Body).Decode(&parsed); err != nil {
-		return nil, fmt.Errorf("%w: decode: %v", ErrTransient, err)
+	if derr := decode(b.Client, req, &parsed, 0); derr != nil {
+		return nil, derr
 	}
 	out := make([]Result, 0, len(parsed.Results))
 	for _, r := range parsed.Results {

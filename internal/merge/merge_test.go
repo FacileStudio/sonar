@@ -13,11 +13,9 @@ func TestRankDedupAndTrust(t *testing.T) {
 		{Title: "high", URL: "https://example.com/b", Engine: "brave"},
 	}
 	out := Rank(in, 10)
-	// "dup" and "low1" share the same normalized URL, so 2 unique survive.
 	if len(out) != 2 {
 		t.Fatalf("dedup failed: got %d results, want 2", len(out))
 	}
-	// the trusted engine's result must outrank the scraper's.
 	if out[0].Title != "high" {
 		t.Fatalf("expected trusted engine first, got %q", out[0].Title)
 	}

@@ -79,22 +79,9 @@ func (d *Dispatcher) Search(ctx context.Context, query string, count int) ([]eng
 		if u.breaker.Open() {
 			continue
 		}
-		if hits, ok := d.cache.Get(u.eng.Name(), query, count); ok {
-			all = append(all, hits...)
-			continue
-		}
-		if err := d.throttle.Wait(ctx); err != nil {
-			return all, err
-		}
-		res, err := u.run(ctx, query, count)
+		res, err := d.one(ctx, &u, query, count)
 		if err != nil {
-			if errors.Is(err, engines.ErrBlocked) {
-				u.breaker.Trip()
-			}
-			continue
-		}
-		if len(res) > 0 {
-			d.cache.Put(u.eng.Name(), query, res)
+			return all, err
 		}
 		all = append(all, res...)
 	}
@@ -102,6 +89,36 @@ func (d *Dispatcher) Search(ctx context.Context, query string, count int) ([]eng
 		return nil, errors.New("no engine returned results")
 	}
 	return all, nil
+}
+
+// one honors one unit: served from cache, or fetched through throttle and
+// retry, caching any fresh results. A blocked or failing engine contributes
+// nothing; an error is returned only when the run must stop (cancel, throttle).
+func (d *Dispatcher) one(ctx context.Context, u *unit, query string, count int) ([]engines.Result, error) {
+	if hits, ok := d.cache.Get(u.eng.Name(), query, count); ok {
+		return hits, nil
+	}
+	if err := d.throttle.Wait(ctx); err != nil {
+		return nil, err
+	}
+	res, err := u.run(ctx, query, count)
+	if err == nil {
+		if len(res) > 0 {
+			d.cache.Put(u.eng.Name(), query, res)
+		}
+		return res, nil
+	}
+	tripBlocked(u, err)
+	return []engines.Result{}, nil
+}
+
+// tripBlocked parks a single engine when the run identifies it as blocked so
+// it stays out of service for its cooldown instead of being re-hammered.
+func tripBlocked(u *unit, err error) {
+	if !errors.Is(err, engines.ErrBlocked) {
+		return
+	}
+	u.breaker.Trip()
 }
 
 func (u *unit) run(ctx context.Context, query string, count int) ([]engines.Result, error) {

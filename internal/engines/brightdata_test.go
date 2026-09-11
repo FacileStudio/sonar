@@ -3,7 +3,6 @@ package engines
 import "testing"
 
 func TestDecodeBrightDataStringBody(t *testing.T) {
-	// SDK envelope: organic inside a stringified "body".
 	raw := []byte(`{"status_code":200,"body":"{\"organic\":[{\"title\":\"Kubernetes\",\"display_link\":\"https://kubernetes.io\",\"description\":\"open source\"}]}"}`)
 	inner, status, err := decodeBrightData(raw)
 	if err != nil {
@@ -18,7 +17,6 @@ func TestDecodeBrightDataStringBody(t *testing.T) {
 }
 
 func TestDecodeBrightDataObjectBody(t *testing.T) {
-	// Parsed form: organic inside a JSON-object "body".
 	raw := []byte(`{"status_code":200,"body":{"organic":[{"title":"Golang","display_link":"https://go.dev"}]}}`)
 	inner, status, err := decodeBrightData(raw)
 	if err != nil {

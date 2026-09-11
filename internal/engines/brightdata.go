@@ -59,26 +59,14 @@ func (b *BrightData) Search(ctx context.Context, query string, count int) ([]Res
 	body, _ := json.Marshal(brightdataRequest{
 		Zone: b.Zone, URL: searchURL, Format: "json",
 	})
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		"https://api.brightdata.com/request", bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrTransient, err)
-	}
-	httpc.Fingerprint(req.Header)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+b.Key)
+	req := brightDataRequest(ctx, b, body)
 	res, err := b.Client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrTransient, err)
 	}
 	defer res.Body.Close()
-	switch {
-	case res.StatusCode == http.StatusUnauthorized || res.StatusCode == http.StatusForbidden:
-		return nil, ErrBlocked
-	case res.StatusCode == http.StatusTooManyRequests || res.StatusCode >= 500:
-		return nil, ErrTransient
-	case res.StatusCode != http.StatusOK:
-		return nil, fmt.Errorf("%w: status %d", ErrTransient, res.StatusCode)
+	if gerr := guardStatus(res.StatusCode, 0); gerr != nil {
+		return nil, gerr
 	}
 	raw, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -88,9 +76,22 @@ func (b *BrightData) Search(ctx context.Context, query string, count int) ([]Res
 	if err != nil {
 		return nil, fmt.Errorf("%w: parse: %v", ErrTransient, err)
 	}
-	// Bright Data returns HTTP 200 with a non-200 envelope status (e.g. 502
-	// plus x-brd-error: captcha) when its scraper is blocked. Surface that as
-	// transient so the dispatcher retries / falls through instead of a 0-hit.
+	return brightDataHits(inner, envStatus, b.Name())
+}
+
+// brightDataRequest builds the authenticated SERP POST request.
+func brightDataRequest(ctx context.Context, b *BrightData, body []byte) *http.Request {
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost,
+		"https://api.brightdata.com/request", bytes.NewReader(body))
+	httpc.Fingerprint(req.Header)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+b.Key)
+	return req
+}
+
+// brightDataHits flattens the envelope's organic results, or an upstream error
+// when the envelope carries a non-OK status (e.g. 502 plus a captcha header).
+func brightDataHits(inner brightdataInner, envStatus int, engine string) ([]Result, error) {
 	if envStatus != 0 && envStatus != http.StatusOK {
 		return nil, fmt.Errorf("%w: upstream status %d", ErrTransient, envStatus)
 	}
@@ -100,7 +101,7 @@ func (b *BrightData) Search(ctx context.Context, query string, count int) ([]Res
 		if u == "" {
 			u = r.Link
 		}
-		out = append(out, Result{Title: r.Title, URL: u, Snippet: r.Description, Engine: b.Name()})
+		out = append(out, Result{Title: r.Title, URL: u, Snippet: r.Description, Engine: engine})
 	}
 	return out, nil
 }
@@ -124,11 +125,9 @@ func decodeBrightData(raw []byte) (brightdataInner, int, error) {
 	if len(env.Body) == 0 {
 		return inner, env.StatusCode, nil
 	}
-	// A quoted-empty body (captcha/502 short-circuits) is no results, not an error.
 	if string(env.Body) == `""` {
 		return inner, env.StatusCode, nil
 	}
-	// "body" may be a JSON object or a stringified JSON blob; unwrap either.
 	var asString string
 	if err := json.Unmarshal(env.Body, &asString); err == nil {
 		return inner, env.StatusCode, json.Unmarshal([]byte(asString), &inner)
