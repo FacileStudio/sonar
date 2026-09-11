@@ -6,6 +6,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/table"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/spf13/cobra"
 
 	"github.com/FacileStudio/sonar/internal/config"
@@ -81,19 +82,46 @@ func keyState(key string) string {
 }
 
 func renderEngineTable(rows []erow) {
+	header := lipgloss.NewStyle().Foreground(lipgloss.Blue)
 	t := table.New().
 		Border(lipgloss.NormalBorder()).
-		Headers("engine", "prio", "state", "key")
+		BorderStyle(header).
+		Headers("engine", "prio", "state", "key").
+		StyleFunc(func(row, col int) lipgloss.Style {
+			if row == table.HeaderRow {
+				return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Blue)
+			}
+			if col == 2 || col == 3 {
+				return lipgloss.NewStyle().Foreground(stateColor(rows[row].cells[col]))
+			}
+			return lipgloss.NewStyle()
+		})
 	for _, r := range rows {
 		t.Row(r.cells...)
 	}
 	lipgloss.Println(t)
 }
 
+// stateColor colours the state and key columns: an active value (on, set) is
+// green, anything else dim so it recedes.
+func stateColor(s string) ansi.BasicColor {
+	if s == "on" || s == "set" {
+		return lipgloss.Green
+	}
+	return lipgloss.BrightBlack
+}
+
 // printTuning shows the block-avoidance knobs that are easy to lose in a config
-// file, honoring the brace-adjacent style of the engine table above.
+// file, with bold blue keys matching the table header.
 func printTuning(cfg *config.Config) {
-	fmt.Printf("count=%d timeout=%ds minInterval=%v jitter=%v breakerCooldown=%v cacheTTL=%v\n",
-		cfg.DefaultCount, cfg.TimeoutSeconds, cfg.MinInterval, cfg.Jitter, cfg.BreakerCooldown, cfg.CacheTTL)
-	fmt.Printf("cacheDir=%s\n", cfg.CacheDir)
+	label := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Blue)
+	dim := lipgloss.NewStyle().Faint(true)
+	lipgloss.Println(fmt.Sprintf("%s %-10s %s %-8s %s %-8s %s %-8s\n%s %-8s %s %-8s\n%s %s",
+		label.Render("count"), dim.Render(fmt.Sprintf("%d", cfg.DefaultCount)),
+		label.Render("timeout"), dim.Render(fmt.Sprintf("%ds", cfg.TimeoutSeconds)),
+		label.Render("minInterval"), dim.Render(fmt.Sprintf("%v", cfg.MinInterval)),
+		label.Render("jitter"), dim.Render(fmt.Sprintf("%v", cfg.Jitter)),
+		label.Render("breakerCooldown"), dim.Render(fmt.Sprintf("%v", cfg.BreakerCooldown)),
+		label.Render("cacheTTL"), dim.Render(fmt.Sprintf("%v", cfg.CacheTTL)),
+		label.Render("cacheDir"), dim.Render(cfg.CacheDir)))
 }
