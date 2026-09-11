@@ -32,5 +32,7 @@ func Execute() {
 }
 
 func init() {
+	// cobra's default is `<bin> version <v>`, which the installer cannot parse.
+	rootCmd.SetVersionTemplate("{{.Name}} {{.Version}}\n")
 	rootCmd.AddCommand(searchCmd)
 }

@@ -14,14 +14,16 @@ import (
 // aggregator rank above scrapers, whose relevance is untrustworthy from
 // low-reputation IPs.
 var engineTrust = map[string]int{
-	"brave":     5,
-	"exa":       5,
-	"firecrawl": 5,
-	"serpapi":   5,
-	"tavily":    5,
-	"furet":     4,
-	"bing":      1,
-	"ddg":       1,
+	"brave":       5,
+	"brightdata":  5,
+	"browserbase": 5,
+	"exa":         5,
+	"firecrawl":   5,
+	"serpapi":     5,
+	"tavily":      5,
+	"furet":       4,
+	"bing":        1,
+	"ddg":         1,
 }
 
 // Rank dedupes by normalized URL and sorts by engine trust, then original

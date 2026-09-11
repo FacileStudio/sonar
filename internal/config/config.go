@@ -17,6 +17,7 @@ type EngineDef struct {
 	Enabled  bool   `yaml:"enabled"`
 	APIKey   string `yaml:"apiKey"`
 	BaseURL  string `yaml:"baseURL"`
+	Zone     string `yaml:"zone"`
 	Priority int    `yaml:"priority"`
 	Count    int    `yaml:"count"`
 }
@@ -45,14 +46,16 @@ func Default() *Config {
 		CacheDir:        "~/.cache/sonar",
 		CacheTTL:        15 * time.Minute,
 		Engines: map[string]*EngineDef{
-			"brave":     {Enabled: false, Priority: 1, Count: 10},
-			"tavily":    {Enabled: false, Priority: 2, Count: 10},
-			"exa":       {Enabled: false, Priority: 3, Count: 10},
-			"firecrawl": {Enabled: false, Priority: 4, Count: 10},
-			"serpapi":   {Enabled: false, Priority: 5, Count: 10},
-			"furet":     {Enabled: true, Priority: 6, BaseURL: "https://furet.facile.studio"},
-			"bing":      {Enabled: false, Priority: 7, Count: 10},
-			"ddg":       {Enabled: false, Priority: 8, Count: 10},
+			"brave":       {Enabled: false, Priority: 1, Count: 10},
+			"tavily":      {Enabled: false, Priority: 2, Count: 10},
+			"exa":         {Enabled: false, Priority: 3, Count: 10},
+			"firecrawl":   {Enabled: false, Priority: 4, Count: 10},
+			"serpapi":     {Enabled: false, Priority: 5, Count: 10},
+			"browserbase": {Enabled: false, Priority: 6, Count: 10},
+			"brightdata":  {Enabled: false, Priority: 7, Count: 10},
+			"furet":       {Enabled: true, Priority: 8, BaseURL: "https://furet.facile.studio"},
+			"bing":        {Enabled: false, Priority: 9, Count: 10},
+			"ddg":         {Enabled: false, Priority: 10, Count: 10},
 		},
 	}
 }
@@ -103,6 +106,11 @@ func applyEnv(cfg *Config) {
 			}
 		}
 	}
+	if bd := cfg.Engines["brightdata"]; bd != nil && bd.Zone == "" {
+		if z := os.Getenv("BRIGHTDATA_ZONE"); z != "" {
+			bd.Zone = z
+		}
+	}
 }
 
 // engineEnvCandidates lists the env vars a key may live in: the canonical
@@ -120,6 +128,12 @@ func engineEnvCandidates(name string) []string {
 		return []string{canonical, "TAVILY_KEY"}
 	case "serpapi":
 		return []string{canonical, "SERPAPI_API_KEY", "SERPAPI_KEY"}
+	case "brave":
+		return []string{canonical, "BRAVE_KEY"}
+	case "browserbase":
+		return []string{canonical, "BROWSERBASE_KEY", "BROWSERBASE_API_KEY"}
+	case "brightdata":
+		return []string{canonical, "BRIGHTDATA_KEY", "BRIGHTDATA_API_KEY"}
 	default:
 		return []string{canonical}
 	}

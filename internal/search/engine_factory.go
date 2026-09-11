@@ -47,6 +47,16 @@ func buildEngineUnits(cfg *config.Config, client *http.Client) []built {
 				continue
 			}
 			out = append(out, built{prio: def.Priority, eng: &engines.SerpAPI{Key: def.APIKey, Client: client, Count: def.Count}})
+		case "browserbase":
+			if def.APIKey == "" {
+				continue
+			}
+			out = append(out, built{prio: def.Priority, eng: &engines.Browserbase{Key: def.APIKey, Client: client, Count: def.Count}})
+		case "brightdata":
+			if def.APIKey == "" {
+				continue
+			}
+			out = append(out, built{prio: def.Priority, eng: &engines.BrightData{Key: def.APIKey, Zone: def.Zone, Client: client, Count: def.Count}})
 		case "furet":
 			base := def.BaseURL
 			if base == "" {
