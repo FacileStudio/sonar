@@ -4,6 +4,14 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.8.1]
+
+### Fixed
+
+- The singleflight key now includes the result count, so two concurrent
+  queries with the same words but different `count` values each run their
+  own engine call instead of sharing one.
+
 ## [v0.8.0]
 
 ### Added
