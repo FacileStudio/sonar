@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/FacileStudio/sonar/internal/engines"
@@ -15,7 +16,7 @@ func (d *Dispatcher) one(ctx context.Context, u *unit, query string, count int) 
 	if hits, ok := d.cache.Get(u.eng.Name(), query, count); ok {
 		return tag(hits, u.prio), nil
 	}
-	key := u.eng.Name() + "\x00" + query
+	key := fmt.Sprintf("%s\x00%d\x00%s", u.eng.Name(), count, query)
 	v, err, _ := d.flight.Do(key, func() (any, error) {
 		return d.fetch(ctx, u, query, count)
 	})

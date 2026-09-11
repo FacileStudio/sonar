@@ -165,3 +165,17 @@ func TestCancelledContextStopsDispatch(t *testing.T) {
 		t.Fatalf("err = %v, want cancel or empty result", err)
 	}
 }
+
+func TestSingleflightDistinguishesCounts(t *testing.T) {
+	eng := &stubEngine{name: "brave", hits: hitsFor("brave", "", 5)}
+	d := testDispatcher(t, unit{eng: eng, breaker: politeness.NewBreaker(time.Minute), throttle: politeness.NewThrottle(0, 0), prio: 1})
+	var wg sync.WaitGroup
+	for _, count := range []int{3, 7} {
+		wg.Go(func() {
+			if _, err := d.one(context.Background(), &d.order[0], "q", count); err != nil {
+				t.Errorf("count %d: %v", count, err)
+			}
+		})
+	}
+	wg.Wait()
+}
