@@ -8,10 +8,11 @@ import (
 // Result is one search hit. Engine records its provenance so the caller can
 // show where the result came from and the merge layer can weight by engine.
 type Result struct {
-	Title   string
-	Snippet string
-	URL     string
-	Engine  string
+	Title    string
+	Snippet  string
+	URL      string
+	Engine   string
+	Priority int `json:"-"`
 }
 
 // Sentinel errors classify an engine failure so the dispatcher can choose

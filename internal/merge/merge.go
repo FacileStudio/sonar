@@ -42,7 +42,11 @@ func Rank(in []engines.Result, count int) []engines.Result {
 		out = append(out, r)
 	}
 	sort.SliceStable(out, func(i, j int) bool {
-		return trust(out[i].Engine) > trust(out[j].Engine)
+		ti, tj := trust(out[i].Engine), trust(out[j].Engine)
+		if ti != tj {
+			return ti > tj
+		}
+		return out[i].Priority < out[j].Priority
 	})
 	if len(out) > count {
 		out = out[:count]

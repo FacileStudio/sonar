@@ -7,12 +7,36 @@ package mcpserver
 import (
 	"context"
 
+	"github.com/FacileStudio/sonar/internal/config"
+	"github.com/FacileStudio/sonar/internal/search"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // serverName is how a client, and the human reading its permission prompt,
 // refer to this server.
 const serverName = "sonar"
+
+// server holds the dispatcher for the life of the MCP process so per-engine
+// circuit breakers and throttle warm-up persist across tool calls instead of
+// resetting on every query.
+type server struct {
+	dispatcher *search.Dispatcher
+}
+
+// newServer builds a server with a dispatcher built once from config. It
+// fails soft: a broken config or cache directory falls back to the per-call
+// path rather than refusing to start.
+func newServer() (*server, bool) {
+	cfg, err := config.Load(config.Path())
+	if err != nil {
+		return nil, false
+	}
+	d, err := search.NewDispatcher(cfg)
+	if err != nil {
+		return nil, false
+	}
+	return &server{dispatcher: d}, true
+}
 
 // New builds the server with its search tool bound to an in-process call into
 // internal/search, so the MCP surface and the `sonar search` command share
@@ -23,7 +47,11 @@ const serverName = "sonar"
 // the results this package can already compute.
 func New(version string) *mcp.Server {
 	s := mcp.NewServer(&mcp.Implementation{Name: serverName, Version: version}, nil)
-	mcp.AddTool(s, searchTool(), runSearch)
+	if srv, ok := newServer(); ok {
+		mcp.AddTool(s, searchTool(), srv.runSearch)
+	} else {
+		mcp.AddTool(s, searchTool(), runSearch)
+	}
 	return s
 }
 

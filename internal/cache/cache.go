@@ -4,11 +4,13 @@
 package cache
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/FacileStudio/sonar/internal/engines"
@@ -23,6 +25,7 @@ type entry struct {
 // repeat queries often; a hit served here is one fewer request to an IP already
 // fighting search-engine reputation.
 type Cache struct {
+	mu  sync.Mutex
 	dir string
 	ttl time.Duration
 }
@@ -37,6 +40,8 @@ func New(dir string, ttl time.Duration) (*Cache, error) {
 
 // Get returns cached results for the engine+query if present and fresh.
 func (c *Cache) Get(engine, query string, count int) ([]engines.Result, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	b, err := os.ReadFile(c.path(engine, query))
 	if err != nil {
 		return nil, false
@@ -53,15 +58,14 @@ func (c *Cache) Get(engine, query string, count int) ([]engines.Result, bool) {
 
 // Put stores results (keyed by engine+query) with the cache TTL.
 func (c *Cache) Put(engine, query string, results []engines.Result) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	e := entry{Expires: time.Now().Add(c.ttl), Results: results}
 	b, _ := json.Marshal(e)
 	return os.WriteFile(c.path(engine, query), b, 0o600)
 }
 
 func (c *Cache) path(engine, query string) string {
-	key := url.QueryEscape(strings.ToLower(query))
-	if len(key) > 80 {
-		key = key[:80]
-	}
-	return filepath.Join(c.dir, engine+"_"+key+".json")
+	sum := sha256.Sum256([]byte(strings.ToLower(query)))
+	return filepath.Join(c.dir, engine+"_"+hex.EncodeToString(sum[:])+".json")
 }

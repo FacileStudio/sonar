@@ -34,6 +34,8 @@ type Config struct {
 	MinInterval     time.Duration         `yaml:"minInterval"`
 	Jitter          time.Duration         `yaml:"jitter"`
 	BreakerCooldown time.Duration         `yaml:"breakerCooldown"`
+	MaxConcurrency  int                   `yaml:"maxConcurrency"`
+	RetryBackoff    time.Duration         `yaml:"retryBackoff"`
 	CacheDir        string                `yaml:"cacheDir"`
 	CacheTTL        time.Duration         `yaml:"cacheTTL"`
 }
@@ -48,6 +50,8 @@ func Default() *Config {
 		MinInterval:     500 * time.Millisecond,
 		Jitter:          150 * time.Millisecond,
 		BreakerCooldown: 2 * time.Minute,
+		MaxConcurrency:  8,
+		RetryBackoff:    800 * time.Millisecond,
 		CacheDir:        "~/.cache/sonar",
 		CacheTTL:        15 * time.Minute,
 		SearxngPriority: 9,

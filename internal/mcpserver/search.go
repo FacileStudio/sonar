@@ -9,9 +9,7 @@ import (
 	"github.com/FacileStudio/sonar/internal/engines"
 	"github.com/FacileStudio/sonar/internal/search"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-)
-
-// searchInput is what a model may ask for. Query is the only required field.
+) // searchInput is what a model may ask for. Query is the only required field.
 type searchInput struct {
 	Query string `json:"query" jsonschema:"the words to search for across the enabled engines"`
 	Count int    `json:"count,omitempty" jsonschema:"max results to return; 0 means the configured default"`
@@ -28,6 +26,29 @@ type searchHit struct {
 // searchOutput is the ranked, deduped result list.
 type searchOutput struct {
 	Results []searchHit `json:"results"`
+}
+
+// runSearch runs the query through the dispatcher built at server start, so
+// breakers and throttles persist across calls and the MCP surface agrees with
+// the CLI result-for-result on the same query.
+func (s *server) runSearch(ctx context.Context, _ *mcp.CallToolRequest, in searchInput) (*mcp.CallToolResult, searchOutput, error) {
+	query := strings.TrimSpace(in.Query)
+	if query == "" {
+		return nil, searchOutput{}, errors.New("search needs a query")
+	}
+	cfg, err := config.Load(config.Path())
+	if err != nil {
+		return nil, searchOutput{}, err
+	}
+	count := in.Count
+	if count <= 0 {
+		count = cfg.DefaultCount
+	}
+	results, err := s.dispatcher.Query(ctx, query, count)
+	if err != nil {
+		return nil, searchOutput{}, err
+	}
+	return nil, searchOutput{Results: hits(results)}, nil
 }
 
 // runSearch runs the query through the same ranked search the CLI uses, so the

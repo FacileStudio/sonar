@@ -116,12 +116,14 @@ func stateColor(s string) ansi.BasicColor {
 func printTuning(cfg *config.Config) {
 	label := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Blue)
 	dim := lipgloss.NewStyle().Faint(true)
-	lipgloss.Println(fmt.Sprintf("%s %-10s %s %-8s %s %-8s %s %-8s\n%s %-8s %s %-8s\n%s %s",
+	lipgloss.Println(fmt.Sprintf("%s %-10s %s %-8s %s %-8s %s %-8s %s %-8s\n%s %-8s %s %-8s %s %-8s\n%s %s",
 		label.Render("count"), dim.Render(fmt.Sprintf("%d", cfg.DefaultCount)),
 		label.Render("timeout"), dim.Render(fmt.Sprintf("%ds", cfg.TimeoutSeconds)),
 		label.Render("minInterval"), dim.Render(fmt.Sprintf("%v", cfg.MinInterval)),
 		label.Render("jitter"), dim.Render(fmt.Sprintf("%v", cfg.Jitter)),
 		label.Render("breakerCooldown"), dim.Render(fmt.Sprintf("%v", cfg.BreakerCooldown)),
+		label.Render("maxConcurrency"), dim.Render(fmt.Sprintf("%d", cfg.MaxConcurrency)),
+		label.Render("retryBackoff"), dim.Render(fmt.Sprintf("%v", cfg.RetryBackoff)),
 		label.Render("cacheTTL"), dim.Render(fmt.Sprintf("%v", cfg.CacheTTL)),
 		label.Render("cacheDir"), dim.Render(cfg.CacheDir)))
 }
