@@ -10,9 +10,9 @@ import (
 	"github.com/FacileStudio/sonar/internal/engines"
 )
 
-// engineTrust weights an engine's results: keyed APIs and the local SearXNG
-// aggregator rank above scrapers, whose relevance is untrustworthy from
-// low-reputation IPs.
+// engineTrust weights an engine's results: keyed APIs rank above scrapers,
+// whose relevance is untrustworthy from low-reputation IPs. SearXNG instances
+// sit between (see trust), above scrapers but below keyed aggregators.
 var engineTrust = map[string]int{
 	"brave":       5,
 	"brightdata":  5,
@@ -22,10 +22,11 @@ var engineTrust = map[string]int{
 	"linkup":      5,
 	"serpapi":     5,
 	"tavily":      5,
-	"furet":       4,
 	"bing":        1,
 	"ddg":         1,
 }
+
+const searxngTrust = 4
 
 // Rank dedupes by normalized URL and sorts by engine trust, then original
 // position (which already encodes per-engine rank). Capped at count.
@@ -50,6 +51,9 @@ func Rank(in []engines.Result, count int) []engines.Result {
 }
 
 func trust(engine string) int {
+	if strings.HasPrefix(engine, "searxng") {
+		return searxngTrust
+	}
 	if w, ok := engineTrust[engine]; ok {
 		return w
 	}

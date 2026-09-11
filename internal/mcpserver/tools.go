@@ -18,7 +18,7 @@ func searchTool() *mcp.Tool {
 		Description: "Run one query across every enabled sonar engine, merge the survivors, dedupe " +
 			"by URL and rank by engine trust, then return one ranked result list. Each result " +
 			"carries a title, URL, snippet and the engine that found it; results from scrape " +
-			"fallbacks (bing, ddg) rank below keyed-API and furet results, so trust the ordering " +
+			"fallbacks (bing, ddg) rank below keyed-API and SearXNG results, so trust the ordering " +
 			"over any single position. Repeating the same query is served from cache.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint:    true,

@@ -22,9 +22,12 @@ type EngineDef struct {
 	Count    int    `yaml:"count"`
 }
 
-// Config holds the engine map and the block-minimizing tuning knobs.
+// Config holds the engine map, the user's SearXNG instances, and the
+// block-minimizing tuning knobs.
 type Config struct {
 	Engines         map[string]*EngineDef `yaml:"engines"`
+	Searxng         []string              `yaml:"searxng"`
+	SearxngPriority int                   `yaml:"searxngPriority"`
 	DefaultCount    int                   `yaml:"count"`
 	TimeoutSeconds  int                   `yaml:"timeout"`
 	MinInterval     time.Duration         `yaml:"minInterval"`
@@ -34,8 +37,9 @@ type Config struct {
 	CacheTTL        time.Duration         `yaml:"cacheTTL"`
 }
 
-// Default returns a config with sensible defaults: furet enabled, the scrape
-// engines off (ruche's datacenter IP gets them blocked), and gentle pacing.
+// Default returns a config with sensible defaults: the keyed APIs and scrape
+// engines off (ruche's datacenter IP gets them blocked), no SearXNG instance
+// (none ships by default), and gentle pacing.
 func Default() *Config {
 	return &Config{
 		DefaultCount:    10,
@@ -45,6 +49,7 @@ func Default() *Config {
 		BreakerCooldown: 2 * time.Minute,
 		CacheDir:        "~/.cache/sonar",
 		CacheTTL:        15 * time.Minute,
+		SearxngPriority: 9,
 		Engines: map[string]*EngineDef{
 			"brave":       {Enabled: false, Priority: 1, Count: 10},
 			"tavily":      {Enabled: false, Priority: 2, Count: 10},
@@ -54,7 +59,6 @@ func Default() *Config {
 			"browserbase": {Enabled: false, Priority: 6, Count: 10},
 			"brightdata":  {Enabled: false, Priority: 7, Count: 10},
 			"linkup":      {Enabled: false, Priority: 8, Count: 10},
-			"furet":       {Enabled: true, Priority: 9, BaseURL: "https://furet.facile.studio"},
 			"bing":        {Enabled: false, Priority: 10, Count: 10},
 			"ddg":         {Enabled: false, Priority: 11, Count: 10},
 		},

@@ -1,6 +1,7 @@
 package search
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/FacileStudio/sonar/internal/config"
@@ -12,9 +13,10 @@ type built struct {
 	eng  engines.Engine
 }
 
-// buildEngineUnits turns the config map into ordered engine instances. Only
-// enabled engines are built; disabled or keyed-but-missing-key entries are
-// skipped so the dispatcher never calls a worthless backend.
+// buildEngineUnits turns the config map and the user's SearXNG list into
+// ordered engine instances. Only enabled engines are built; disabled or
+// keyed-but-missing-key entries are skipped so the dispatcher never calls a
+// worthless backend.
 func buildEngineUnits(cfg *config.Config, client *http.Client) []built {
 	var out []built
 	for name, def := range cfg.Engines {
@@ -25,11 +27,27 @@ func buildEngineUnits(cfg *config.Config, client *http.Client) []built {
 			out = append(out, built{prio: def.Priority, eng: e})
 		}
 	}
+	for i, base := range cfg.Searxng {
+		out = append(out, built{
+			prio: cfg.SearxngPriority,
+			eng:  &engines.Searxng{Label: searxngName(cfg.Searxng, i), BaseURL: base, Client: client},
+		})
+	}
 	return out
 }
 
+// searxngName labels a SearXNG instance for the cache and merge layers: the
+// bare name for a single instance, an index suffix when there are several so
+// their caches and breaker identities stay distinct.
+func searxngName(urls []string, i int) string {
+	if len(urls) > 1 {
+		return fmt.Sprintf("searxng%d", i+1)
+	}
+	return "searxng"
+}
+
 // needsKey lists the engines that require a provider API key to be built. The
-// scrape engines (furet, bing, ddg) never need one.
+// scrape engines (bing, ddg) and SearXNG instances never need one.
 var needsKey = map[string]bool{
 	"brave": true, "tavily": true, "exa": true, "firecrawl": true, "serpapi": true,
 	"browserbase": true, "brightdata": true, "linkup": true,
@@ -70,15 +88,9 @@ func makeKeyed(name string, def *config.EngineDef, client *http.Client) engines.
 	return nil
 }
 
-// makeScrape builds an engine that needs no API key: furet, bing or ddg.
+// makeScrape builds an engine that needs no API key: bing or ddg.
 func makeScrape(name string, def *config.EngineDef, client *http.Client) engines.Engine {
 	switch name {
-	case "furet":
-		base := def.BaseURL
-		if base == "" {
-			base = "https://furet.facile.studio"
-		}
-		return &engines.Furet{BaseURL: base, Client: client, Count: def.Count}
 	case "bing":
 		return &engines.Bing{Client: client, Count: def.Count}
 	case "ddg":

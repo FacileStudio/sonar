@@ -10,16 +10,19 @@ import (
 	"github.com/FacileStudio/sonar/internal/httpc"
 )
 
-// Furet queries the self-hosted SearXNG instance. It aggregates many upstream
-// engines in one call, so it is friendlier than scraping a single engine, but
-// it inherits the upstream engines' IP blocks from ruche's own SearXNG config.
-type Furet struct {
+// Searxng queries a SearXNG instance. It aggregates many upstream engines in
+// one call, so it is friendlier than scraping a single engine, but it inherits
+// the upstream engines' IP blocks from the instance's own SearXNG config. Label
+// distinguishes multiple instances for the cache and merge layers; BaseURL must
+// be set by the caller.
+type Searxng struct {
+	Label   string
 	BaseURL string
 	Client  *http.Client
 	Count   int
 }
 
-func (f *Furet) Name() string { return "furet" }
+func (s *Searxng) Name() string { return s.Label }
 
 type searxResponse struct {
 	Results []struct {
@@ -29,15 +32,15 @@ type searxResponse struct {
 	} `json:"results"`
 }
 
-func (f *Furet) Search(ctx context.Context, query string, count int) ([]Result, error) {
-	u := f.BaseURL + "/search?" + url.Values{
+func (s *Searxng) Search(ctx context.Context, query string, count int) ([]Result, error) {
+	u := s.BaseURL + "/search?" + url.Values{
 		"q":      {query},
 		"format": {"json"},
 	}.Encode()
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	httpc.Fingerprint(req.Header)
 	req.Header.Set("Accept", "application/json")
-	res, err := f.Client.Do(req)
+	res, err := s.Client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrTransient, err)
 	}
@@ -54,7 +57,7 @@ func (f *Furet) Search(ctx context.Context, query string, count int) ([]Result, 
 	}
 	out := make([]Result, 0, len(parsed.Results))
 	for _, r := range parsed.Results {
-		out = append(out, Result{Title: r.Title, URL: r.URL, Snippet: r.Content, Engine: f.Name()})
+		out = append(out, Result{Title: r.Title, URL: r.URL, Snippet: r.Content, Engine: s.Name()})
 	}
 	return out, nil
 }

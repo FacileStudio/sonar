@@ -23,11 +23,23 @@ func TestRankDedupAndTrust(t *testing.T) {
 
 func TestRankCapsAtCount(t *testing.T) {
 	in := []engines.Result{
-		{Title: "a", URL: "https://x.com/1", Engine: "furet"},
-		{Title: "b", URL: "https://x.com/2", Engine: "furet"},
-		{Title: "c", URL: "https://x.com/3", Engine: "furet"},
+		{Title: "a", URL: "https://x.com/1", Engine: "searxng"},
+		{Title: "b", URL: "https://x.com/2", Engine: "searxng"},
+		{Title: "c", URL: "https://x.com/3", Engine: "searxng"},
 	}
 	if got := len(Rank(in, 2)); got != 2 {
 		t.Fatalf("count cap failed: got %d, want 2", got)
+	}
+}
+
+func TestTrustSearxngSitsAboveScrapersBelowKeyed(t *testing.T) {
+	if trust("searxng") <= trust("bing") {
+		t.Fatal("searxng should outrank a scraper")
+	}
+	if trust("searxng2") <= trust("bing") {
+		t.Fatal("indexed searxng instance should outrank a scraper")
+	}
+	if trust("searxng") >= trust("brave") {
+		t.Fatal("searxng should rank below a keyed API")
 	}
 }
