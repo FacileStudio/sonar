@@ -1,0 +1,52 @@
+# sonar's coding standard, enforced by filet.
+# https://github.com/FacileStudio/filet
+#
+#   filet check .     the rules
+#   filet roast .     the rules, with commentary
+#
+# Matches the other suite CLIs (sonde-cli, douane, etc.): fatih/cobra + the
+# canonical Go template. The limits are the published defaults of the tools
+# they come from, not numbers picked to make a count go away.
+
+kind: cli
+
+ignore:
+  - .git
+  - vendor
+  - dist
+  - build
+  - testdata
+  - coverage
+
+extensions: [.go]
+
+limits:
+  fileLines: 250
+  funcsPerFile: 8
+  funcLines: 30
+  funcStatements: 25
+  lineLength: 120
+  params: 5
+  returns: 3
+  nesting: 4
+  complexity: 10
+  structFields: 12
+  interfaceMethods: 4
+
+architecture:
+  requiredDirs: [cmd, internal]
+  requiredFiles:
+    "internal/config": [config.go]
+
+style:
+  banInit: false
+  banGlobalMutable: false
+  requireDocComments: true
+  banInlineComments: true
+  banTODO: true
+  banTrailingSpace: true
+
+failOn: error
+
+disabled:
+  - gen.line.long
