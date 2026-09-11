@@ -51,9 +51,8 @@ mcp:
 The tool is `search(query, count)`: it runs the same dispatch, dedupe and
 ranking as `sonar search`, so both surfaces return identical results for the
 same query. Results are cached and throttled exactly as on the CLI. API keys
-are read from the same place the CLI reads them, so `eval "$(tiroir export)"`
-in the shell that launches the agent is still what makes the keyed engines
-fire.
+are read from the environment the same way the CLI reads them, which an agent
+launched from a normal shell inherits — no extra setup.
 
 ## Configuration
 
