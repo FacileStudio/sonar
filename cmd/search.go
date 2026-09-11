@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -90,9 +89,4 @@ func writeText(results []engines.Result, query string) {
 	}
 }
 
-func configPath() string {
-	if p := os.Getenv("SONAR_CONFIG"); p != "" {
-		return p
-	}
-	return filepath.Join(os.Getenv("HOME"), ".config", "sonar", "config.yml")
-}
+func configPath() string { return config.Path() }
