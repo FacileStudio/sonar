@@ -48,9 +48,13 @@ func newServer() (*server, bool) {
 func New(version string) *mcp.Server {
 	s := mcp.NewServer(&mcp.Implementation{Name: serverName, Version: version}, nil)
 	if srv, ok := newServer(); ok {
-		mcp.AddTool(s, searchTool(), srv.runSearch)
+		mcp.AddTool(s, searchTool(), func(ctx context.Context, req *mcp.CallToolRequest, in searchInput) (*mcp.CallToolResult, searchOutput, error) {
+			return runSearchWith(ctx, req, in, srv.dispatcher)
+		})
 	} else {
-		mcp.AddTool(s, searchTool(), runSearch)
+		mcp.AddTool(s, searchTool(), func(ctx context.Context, req *mcp.CallToolRequest, in searchInput) (*mcp.CallToolResult, searchOutput, error) {
+			return runSearchWith(ctx, req, in, nil)
+		})
 	}
 	return s
 }

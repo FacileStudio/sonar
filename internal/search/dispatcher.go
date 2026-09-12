@@ -6,10 +6,8 @@ package search
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
-	"sync"
 	"time"
 
 	"github.com/FacileStudio/sonar/internal/cache"
@@ -22,6 +20,7 @@ import (
 )
 
 type unit struct {
+	name     string
 	eng      engines.Engine
 	breaker  *politeness.Breaker
 	throttle *politeness.Throttle
@@ -45,22 +44,24 @@ type Dispatcher struct {
 
 // Query builds a dispatcher and runs one full ranked search under a timeout
 // budget. Shared by the search command so a one-shot process gets the whole
-// pipeline in one call.
-func Query(ctx context.Context, cfg *config.Config, query string, count int) ([]engines.Result, error) {
+// pipeline in one call. Include names a subset of engines to run; empty means
+// every enabled one.
+func Query(ctx context.Context, cfg *config.Config, query string, count int, include []string) ([]engines.Result, error) {
 	d, err := NewDispatcher(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("engine setup: %w", err)
 	}
-	return d.Query(ctx, query, count)
+	return d.Query(ctx, query, count, include)
 }
 
 // Query runs one ranked search: search under a timeout budget, then rank and
 // cap the survivors. Long-lived callers (the MCP server) reuse the dispatcher
-// across queries so breakers and throttle warm-up persist.
-func (d *Dispatcher) Query(ctx context.Context, query string, count int) ([]engines.Result, error) {
+// across queries so breakers and throttle warm-up persist. Include names a
+// subset of engines to run; empty means every enabled one.
+func (d *Dispatcher) Query(ctx context.Context, query string, count int, include []string) ([]engines.Result, error) {
 	ctx, cancel := context.WithTimeout(ctx, d.timeout)
 	defer cancel()
-	results, err := d.Search(ctx, query, count)
+	results, err := d.Search(ctx, query, count, include)
 	if err != nil {
 		return nil, err
 	}
@@ -86,6 +87,7 @@ func NewDispatcher(cfg *config.Config) (*Dispatcher, error) {
 	}
 	for _, b := range built {
 		d.order = append(d.order, unit{
+			name:     b.name,
 			eng:      b.eng,
 			breaker:  politeness.NewBreaker(cfg.BreakerCooldown),
 			throttle: politeness.NewThrottle(cfg.MinInterval, cfg.Jitter),
@@ -110,62 +112,15 @@ func retryBackoff(cfg *config.Config) time.Duration {
 	return 800 * time.Millisecond
 }
 
-// Search fans out to every enabled engine, falling through on failure and
-// merging the survivors. Returns combined results, or an error only when no
-// engine answered with results.
-func (d *Dispatcher) Search(ctx context.Context, query string, count int) ([]engines.Result, error) {
-	var (
-		mu  sync.Mutex
-		all []engines.Result
-		wg  sync.WaitGroup
-	)
-	for i := range d.order {
-		u := &d.order[i]
-		if u.breaker.Open() {
-			continue
-		}
-		if !d.acquire(ctx, u) {
-			break
-		}
-		wg.Go(func() {
-			defer d.release(u)
-			res, err := d.one(ctx, u, query, count)
-			if err != nil {
-				return
-			}
-			mu.Lock()
-			all = append(all, res...)
-			mu.Unlock()
-		})
+// Search fans out to the selected engines — every enabled one when include is
+// empty — falling through on failure and merging the survivors. Returns
+// combined results, or an error only when no engine answered with results.
+// A name in include that matches no enabled engine is an error naming what is
+// actually available.
+func (d *Dispatcher) Search(ctx context.Context, query string, count int, include []string) ([]engines.Result, error) {
+	units, err := d.selectUnits(include)
+	if err != nil {
+		return nil, err
 	}
-	wg.Wait()
-	if len(all) == 0 {
-		return nil, errors.New("no engine returned results")
-	}
-	return all, nil
-}
-
-// acquire takes the concurrency slots a unit needs before its goroutine
-// starts: the global cap for every engine, plus the single scrape slot for the
-// scrapers, so scrapes never overlap each other.
-func (d *Dispatcher) acquire(ctx context.Context, u *unit) bool {
-	slots := []chan struct{}{d.inflight}
-	if u.scrape {
-		slots = []chan struct{}{d.scrape, d.inflight}
-	}
-	for _, s := range slots {
-		select {
-		case s <- struct{}{}:
-		case <-ctx.Done():
-			return false
-		}
-	}
-	return true
-}
-
-func (d *Dispatcher) release(u *unit) {
-	<-d.inflight
-	if u.scrape {
-		<-d.scrape
-	}
+	return d.fanOut(ctx, units, query, count)
 }

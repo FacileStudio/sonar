@@ -18,8 +18,9 @@ import (
 )
 
 var (
-	flagJSON  bool
-	flagCount int
+	flagJSON   bool
+	flagCount  int
+	flagEngine string
 )
 
 var searchCmd = &cobra.Command{
@@ -32,6 +33,20 @@ var searchCmd = &cobra.Command{
 func init() {
 	searchCmd.Flags().BoolVar(&flagJSON, "json", false, "emit results as JSON")
 	searchCmd.Flags().IntVarP(&flagCount, "count", "n", 0, "max results to return (default: config count)")
+	searchCmd.Flags().StringVar(&flagEngine, "engines", "", "comma-separated engines to run (default: all enabled)")
+}
+
+func parseEngines(s string) []string {
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+	var out []string
+	for _, name := range strings.Split(s, ",") {
+		if name = strings.TrimSpace(name); name != "" {
+			out = append(out, name)
+		}
+	}
+	return out
 }
 
 func runSearch(cmd *cobra.Command, args []string) error {
@@ -47,15 +62,16 @@ func runSearch(cmd *cobra.Command, args []string) error {
 	if flagCount > 0 {
 		count = flagCount
 	}
+	include := parseEngines(flagEngine)
 	var results []engines.Result
 	if flagJSON {
-		results, err = search.Query(context.Background(), cfg, query, count)
+		results, err = search.Query(context.Background(), cfg, query, count, include)
 		if err != nil {
 			return err
 		}
 		return writeJSON(results)
 	}
-	results, err = searchWithSpinner(context.Background(), cfg, query, count)
+	results, err = searchWithSpinner(context.Background(), cfg, query, count, include)
 	if err != nil {
 		return err
 	}
@@ -66,7 +82,7 @@ func runSearch(cmd *cobra.Command, args []string) error {
 // searchWithSpinner runs the search while a spinner animates on stderr, so
 // stdout stays clean for JSON and the user sees the run is alive. Frames stop
 // when the query answers, success or failure.
-func searchWithSpinner(ctx context.Context, cfg *config.Config, query string, count int) ([]engines.Result, error) {
+func searchWithSpinner(ctx context.Context, cfg *config.Config, query string, count int, include []string) ([]engines.Result, error) {
 	done := make(chan struct{})
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -83,7 +99,7 @@ func searchWithSpinner(ctx context.Context, cfg *config.Config, query string, co
 			}
 		}
 	}()
-	results, err := search.Query(ctx, cfg, query, count)
+	results, err := search.Query(ctx, cfg, query, count, include)
 	close(done)
 	wg.Wait()
 	return results, err

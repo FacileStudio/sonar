@@ -83,7 +83,7 @@ func TestSearchRunsEnginesConcurrently(t *testing.T) {
 		unit{eng: fast, breaker: politeness.NewBreaker(time.Minute), throttle: politeness.NewThrottle(0, 0), prio: 2},
 	)
 	start := time.Now()
-	res, err := d.Search(context.Background(), "q", 10)
+	res, err := d.Search(context.Background(), "q", 10, nil)
 	if err != nil {
 		t.Fatalf("search: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestScrapeEnginesStaySequential(t *testing.T) {
 		unit{eng: ddg, breaker: politeness.NewBreaker(time.Minute), throttle: politeness.NewThrottle(0, 0), prio: 2, scrape: true},
 	)
 	start := time.Now()
-	if _, err := d.Search(context.Background(), "q", 10); err != nil {
+	if _, err := d.Search(context.Background(), "q", 10, nil); err != nil {
 		t.Fatalf("search: %v", err)
 	}
 	if elapsed := time.Since(start); elapsed < 120*time.Millisecond {
@@ -121,7 +121,7 @@ func TestSearchRankingMatchesSerialDispatch(t *testing.T) {
 		{eng: ddg, breaker: politeness.NewBreaker(time.Minute), throttle: politeness.NewThrottle(0, 0), prio: 11, scrape: true},
 	}
 	d := testDispatcher(t, units...)
-	res, err := d.Search(context.Background(), "q", 10)
+	res, err := d.Search(context.Background(), "q", 10, nil)
 	if err != nil {
 		t.Fatalf("search: %v", err)
 	}
@@ -148,7 +148,7 @@ func TestFailingEngineFallsThrough(t *testing.T) {
 		unit{eng: dead, breaker: politeness.NewBreaker(time.Minute), throttle: politeness.NewThrottle(0, 0), prio: 1},
 		unit{eng: live, breaker: politeness.NewBreaker(time.Minute), throttle: politeness.NewThrottle(0, 0), prio: 2},
 	)
-	res, err := d.Search(context.Background(), "q", 10)
+	res, err := d.Search(context.Background(), "q", 10, nil)
 	if err != nil {
 		t.Fatalf("search: %v", err)
 	}
@@ -161,8 +161,29 @@ func TestCancelledContextStopsDispatch(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	d := testDispatcher(t, unit{eng: &stubEngine{name: "brave"}, breaker: politeness.NewBreaker(time.Minute), throttle: politeness.NewThrottle(0, 0), prio: 1})
-	if _, err := d.Search(ctx, "q", 10); !errors.Is(err, context.Canceled) && err.Error() != "no engine returned results" {
+	if _, err := d.Search(ctx, "q", 10, nil); !errors.Is(err, context.Canceled) && err.Error() != "no engine returned results" {
 		t.Fatalf("err = %v, want cancel or empty result", err)
+	}
+}
+
+func TestSearchSelectsEngines(t *testing.T) {
+	brave := &stubEngine{name: "brave", hits: hitsFor("brave", "", 2)}
+	bing := &stubEngine{name: "bing", hits: hitsFor("bing", "", 2)}
+	d := testDispatcher(t,
+		unit{name: "brave", eng: brave, breaker: politeness.NewBreaker(time.Minute), throttle: politeness.NewThrottle(0, 0), prio: 1},
+		unit{name: "bing", eng: bing, breaker: politeness.NewBreaker(time.Minute), throttle: politeness.NewThrottle(0, 0), prio: 2, scrape: true},
+	)
+	res, err := d.Search(context.Background(), "q", 10, []string{"bing"})
+	if err != nil {
+		t.Fatalf("search: %v", err)
+	}
+	for _, r := range res {
+		if r.Engine != "bing" {
+			t.Fatalf("got result from %q, want only bing", r.Engine)
+		}
+	}
+	if _, err := d.Search(context.Background(), "q", 10, []string{"exa"}); err == nil {
+		t.Fatal("unknown engine accepted")
 	}
 }
 

@@ -38,7 +38,7 @@ func runOpen(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	results, err := search.Query(context.Background(), cfg, query, effectiveCount(n, cfg.DefaultCount))
+	results, err := search.Query(context.Background(), cfg, query, effectiveCount(n, cfg.DefaultCount), nil)
 	if err != nil {
 		return err
 	}

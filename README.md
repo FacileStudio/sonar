@@ -30,6 +30,7 @@ and point `searxng` at your own instances.
 sonar search "circuit breaker pattern"
 sonar search -n 5 "go 1.26 modules"
 sonar search --json "lipgloss colors"
+sonar search --engines tavily,searxng "go 1.26 modules"
 sonar open 3 "go 1.26 modules"   # open result 3 in the browser
 sonar config                     # effective config: engines, keys, knobs
 sonar cache                      # cached result set count and location
@@ -37,6 +38,10 @@ sonar cache clear                # empty the cache
 ```
 
 `-n, --count N` caps the number of results (default: the config `count`, 10).
+`--engines a,b` runs only those engines, by config name — for example
+`--engines tavily` for one keyed API or `--engines exa,searxng` for a subset.
+A name that is not enabled fails with the list of usable engines. Omitted, the
+search runs every enabled engine as usual.
 `--json` prints one JSON document on stdout and nothing else.
 
 `sonar open [n] [query...]` runs a search and hands result `n` (default 1) to
@@ -68,9 +73,12 @@ mcp:
     args: [mcp]
 ```
 
-The tool is `search(query, count)`: it runs the same dispatch, dedupe and
-ranking as `sonar search`, so both surfaces return identical results for the
-same query. Results are cached and throttled exactly as on the CLI. API keys
+The tool is `search(query, count, engines)`: it runs the same dispatch, dedupe
+and ranking as `sonar search`, so both surfaces return identical results for
+the same query. `engines` is an optional list of engine names to run, so an
+agent can target one engine (research code with Exa, generic web with Tavily)
+or a subset; omitted, every enabled engine runs. Results are cached and
+throttled exactly as on the CLI. API keys
 are read from the environment the same way the CLI reads them, which an agent
 launched from a normal shell inherits — no extra setup.
 

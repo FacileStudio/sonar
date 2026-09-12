@@ -2,8 +2,19 @@
 
 All notable changes are documented here. Format derives from Keep a Changelog.
 
-## [Unreleased]
+## [v0.9.0]
 
+### Added
+
+- Per-call engine selection: `sonar search --engines tavily,exa` and the MCP
+  tool's optional `engines` list run a named subset of the enabled engines,
+  leaving the default fan-out to every enabled engine untouched. An unknown or
+  disabled name fails with the list of usable engines.
+
+### Changed
+
+- The MCP server's duplicate search handlers share one path, so the
+  dispatcher-backed and per-call fallbacks cannot drift.
 ## [v0.8.1]
 
 ### Fixed

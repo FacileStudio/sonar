@@ -9,6 +9,7 @@ import (
 )
 
 type built struct {
+	name   string
 	prio   int
 	eng    engines.Engine
 	scrape bool
@@ -25,11 +26,12 @@ func buildEngineUnits(cfg *config.Config, client *http.Client) []built {
 			continue
 		}
 		if e := makeEngine(name, def, client); e != nil {
-			out = append(out, built{prio: def.Priority, eng: e, scrape: isScrape(name)})
+			out = append(out, built{name: name, prio: def.Priority, eng: e, scrape: isScrape(name)})
 		}
 	}
 	for i, base := range cfg.Searxng {
 		out = append(out, built{
+			name: SearxngName(cfg.Searxng, i),
 			prio: cfg.SearxngPriority,
 			eng:  &engines.Searxng{Label: SearxngName(cfg.Searxng, i), BaseURL: base, Client: client},
 		})
