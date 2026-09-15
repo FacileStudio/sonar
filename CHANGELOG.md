@@ -2,6 +2,25 @@
 
 All notable changes are documented here. Format derives from Keep a Changelog.
 
+## [Unreleased]
+
+## [v0.10.0]
+
+### Added
+
+- `sonar fetch <URL>` command: extracts web page content using a headless
+  browser and prints the text to stdout. Supports `--wait-until` conditions
+  (`networkidle`, `domcontentloaded`, `load`, `none`).
+- Headless browser engine (`rod`) using `go-rod` with stealth mode and safe
+  DOM element extraction.
+
+### Fixed
+
+- Multi-engine fan-out uses `sync.WaitGroup` so that transient errors or
+  rate limits on one engine do not abort other concurrent engine queries.
+- Clean error returns instead of panics during browser launches or element
+  lookups.
+
 ## [v0.9.0]
 
 ### Added
