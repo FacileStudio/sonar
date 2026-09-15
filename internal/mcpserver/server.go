@@ -66,11 +66,3 @@ func New(version string) *mcp.Server {
 func Serve(ctx context.Context, version string) error {
 	return New(version).Run(ctx, &mcp.StdioTransport{})
 }
-
-// hint returns a pointer to a bool, which the pointer-valued annotations need
-// so the SDK can tell false from unset.
-//
-// DestructiveHint and OpenWorldHint show as true when absent, so a tool that
-// omits them is advertised as destructive and open-world. For a read-only
-// search that is the exact opposite of the truth.
-func hint(b bool) *bool { return &b }

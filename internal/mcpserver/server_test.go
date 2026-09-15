@@ -53,7 +53,7 @@ func TestToolsListReportsExactlySearch(t *testing.T) {
 // open-world: it never changes local state, but it does reach the public web.
 func TestSearchToolSetsAllFourAnnotationsExplicitly(t *testing.T) {
 	want := &mcp.ToolAnnotations{
-		ReadOnlyHint: true, DestructiveHint: hint(false), IdempotentHint: true, OpenWorldHint: hint(true),
+		ReadOnlyHint: true, DestructiveHint: new(false), IdempotentHint: true, OpenWorldHint: new(true),
 	}
 	if !reflect.DeepEqual(listTools(t)[0].Annotations, want) {
 		t.Fatalf("search annotations = %+v, want %+v", listTools(t)[0].Annotations, want)

@@ -5,6 +5,7 @@
 package mcpserver
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -97,12 +98,10 @@ func writeAtomic(path, content string) error {
 	defer func() { _ = os.Remove(tmp.Name()) }()
 
 	if _, err := tmp.WriteString(content); err != nil {
-		_ = tmp.Close()
-		return err
+		return errors.Join(err, tmp.Close())
 	}
 	if err := tmp.Sync(); err != nil {
-		_ = tmp.Close()
-		return err
+		return errors.Join(err, tmp.Close())
 	}
 	if err := tmp.Close(); err != nil {
 		return err

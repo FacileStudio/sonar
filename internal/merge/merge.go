@@ -24,6 +24,7 @@ var engineTrust = map[string]int{
 	"tavily":      5,
 	"bing":        1,
 	"ddg":         1,
+	"rod":         1,
 }
 
 const searxngTrust = 4

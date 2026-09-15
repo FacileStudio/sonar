@@ -66,6 +66,7 @@ func Default() *Config {
 			"linkup":      {Enabled: false, Priority: 8, Count: 10},
 			"bing":        {Enabled: false, Priority: 10, Count: 10},
 			"ddg":         {Enabled: false, Priority: 11, Count: 10},
+			"rod":         {Enabled: false, Priority: 12, Count: 1},
 		},
 	}
 }

@@ -45,21 +45,16 @@ func (d *Dispatcher) fanOut(ctx context.Context, units []unit, query string, cou
 	)
 	for i := range units {
 		u := &units[i]
-		if u.breaker.Open() {
+		if u.breaker.Open() || !d.acquire(ctx, u) {
 			continue
-		}
-		if !d.acquire(ctx, u) {
-			break
 		}
 		wg.Go(func() {
 			defer d.release(u)
-			res, err := d.one(ctx, u, query, count)
-			if err != nil {
-				return
+			if res, err := d.one(ctx, u, query, count); err == nil {
+				mu.Lock()
+				all = append(all, res...)
+				mu.Unlock()
 			}
-			mu.Lock()
-			all = append(all, res...)
-			mu.Unlock()
 		})
 	}
 	wg.Wait()

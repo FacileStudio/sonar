@@ -23,9 +23,9 @@ func searchTool() *mcp.Tool {
 			"over any single position. Repeating the same query is served from cache.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint:    true,
-			DestructiveHint: hint(false),
+			DestructiveHint: new(false),
 			IdempotentHint:  true,
-			OpenWorldHint:   hint(true),
+			OpenWorldHint:   new(true),
 		},
 	}
 }

@@ -30,13 +30,13 @@ var installCmd = &cobra.Command{
 func agents() []mcpserver.Agent {
 	home, _ := os.UserHomeDir()
 	return []mcpserver.Agent{
-		mcpserver.Agent{Name: "claude", Path: filepath.Join(home, ".claude.json"), Key: "mcpServers",
+		{Name: "claude", Path: filepath.Join(home, ".claude.json"), Key: "mcpServers",
 			Marker: filepath.Join(home, ".claude")},
-		mcpserver.Agent{Name: "gemini", Path: filepath.Join(home, ".gemini", "settings.json"), Key: "mcpServers",
+		{Name: "gemini", Path: filepath.Join(home, ".gemini", "settings.json"), Key: "mcpServers",
 			Marker: filepath.Join(home, ".gemini")},
-		mcpserver.Agent{Name: "opencode", Path: filepath.Join(home, ".config", "opencode", "opencode.json"),
+		{Name: "opencode", Path: filepath.Join(home, ".config", "opencode", "opencode.json"),
 			Key: "mcp", Marker: filepath.Join(home, ".config", "opencode")},
-		mcpserver.Agent{Name: "nacelle", Path: filepath.Join(home, ".nacelle.yml"), Key: "",
+		{Name: "nacelle", Path: filepath.Join(home, ".nacelle.yml"), Key: "",
 			Marker: filepath.Join(home, ".nacelle.yml")},
 	}
 }
@@ -122,5 +122,4 @@ func runInstall(cmd *cobra.Command, args []string) error {
 
 func init() {
 	installCmd.Flags().BoolVar(&installAll, "all", false, "register for every harness, installed or not")
-	rootCmd.AddCommand(installCmd)
 }

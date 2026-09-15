@@ -54,6 +54,7 @@ func SearxngName(urls []string, i int) string {
 var needsKey = map[string]bool{
 	"brave": true, "tavily": true, "exa": true, "firecrawl": true, "serpapi": true,
 	"browserbase": true, "brightdata": true, "linkup": true,
+	"rod": false,
 }
 
 // NeedsKey reports whether an engine needs a provider API key to build. Used by
@@ -80,7 +81,7 @@ func isScrape(name string) bool {
 	return name == "bing" || name == "ddg"
 }
 
-// makeKeyed builds one of the eight keyed-API engines, or nil for a scrape name.
+// makeKeyed builds one of the keyed-API or browser engines, or nil for a scrape name.
 func makeKeyed(name string, def *config.EngineDef, client *http.Client) engines.Engine {
 	switch name {
 	case "brave":
@@ -103,13 +104,15 @@ func makeKeyed(name string, def *config.EngineDef, client *http.Client) engines.
 	return nil
 }
 
-// makeScrape builds an engine that needs no API key: bing or ddg.
+// makeScrape builds an engine that needs no API key: bing, ddg, or rod.
 func makeScrape(name string, def *config.EngineDef, client *http.Client) engines.Engine {
 	switch name {
 	case "bing":
 		return &engines.Bing{Client: client, Count: def.Count}
 	case "ddg":
 		return &engines.DDG{Client: client, Count: def.Count}
+	case "rod":
+		return &engines.Rod{Count: def.Count}
 	}
 	return nil
 }

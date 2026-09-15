@@ -41,9 +41,9 @@ func parseEngines(s string) []string {
 		return nil
 	}
 	var out []string
-	for _, name := range strings.Split(s, ",") {
-		if name = strings.TrimSpace(name); name != "" {
-			out = append(out, name)
+	for name := range strings.SplitSeq(strings.TrimSpace(s), ",") {
+		if trimmed := strings.TrimSpace(name); trimmed != "" {
+			out = append(out, trimmed)
 		}
 	}
 	return out
@@ -85,9 +85,7 @@ func runSearch(cmd *cobra.Command, args []string) error {
 func searchWithSpinner(ctx context.Context, cfg *config.Config, query string, count int, include []string) ([]engines.Result, error) {
 	done := make(chan struct{})
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 		for i := 0; ; i = (i + 1) % len(frames) {
 			select {
@@ -98,7 +96,7 @@ func searchWithSpinner(ctx context.Context, cfg *config.Config, query string, co
 				fmt.Fprintf(os.Stderr, "\r\033[K%s searching…", frames[i])
 			}
 		}
-	}()
+	})
 	results, err := search.Query(ctx, cfg, query, count, include)
 	close(done)
 	wg.Wait()
