@@ -1,0 +1,64 @@
+---
+description: 10-core-rules
+alwaysApply: true
+---
+
+## Core Rules
+
+### Communication & Style
+
+Write to **ISO 24495-1** (plain language): lead with the answer, then the reasoning. One idea per paragraph. Short sentences. Ordinary words. Cut what the reader does not need. Make headings and first lines skimmable. Keep code, commands, paths, logs, and quoted content exact. No filler, no pleasantries, no restating the question back.
+
+No slop: no em dashes, no decorative emoji in committed prose, no hedge stacks, no "it's not just X, it's Y", no forcing ideas into threes, no generic closers. Sentence-case headings, straight quotes. Name the actor: "the compiler validates queries", not "queries are validated". Say the concrete thing. If a sentence cannot be restated as a fact, instruction, or number, cut it. `harness` and `surface` are exempt from the plain-word rule. For a deliberate pass over an existing document, run `/unslop`.
+
+### Git & Version Control
+
+- NEVER add "Generated with Claude Code" to pull requests
+- NEVER add "Generated with Codex" to pull requests
+- NEVER prefix branches with `claude` or `codex`
+- NEVER add co-author attribution to commits
+- Use `gh` CLI for all GitHub operations
+- Commit subjects follow Conventional Commits: `type(scope): summary`, imperative, lowercase, no trailing period, under 72 characters
+- Types: `feat`, `fix`, `refactor`, `perf`, `docs`, `style`, `test`, `build`, `ci`, `chore`, `revert`
+- Scope is the package or directory touched; omit it rather than invent one
+- Breaking changes get `!` after the type and a `BREAKING CHANGE:` footer
+- NEVER write a gitmoji in a commit message; the `commit-msg` hook derives it from the type
+
+### Code Style
+
+- NEVER add inline comments in code
+- NEVER add comments in function's body
+- When developing Rust, remove dead code
+- NEVER commit any code that does not pass filet. Code that fails filet is INVALID, whatever else it does. Run the filet check with `filet check` and fix every failure before you commit or ship.
+- Only run filet when the project uses it: check for a `filet.yml` file at the repo root first. If there is no `filet.yml`, the project does not use filet and this gate does not apply.
+
+### Engineering Ladder
+
+Understand the problem first: read the task and the code it touches, trace the real flow end to end, then climb.
+
+Stop at the first rung that holds:
+
+1. Does this need to exist? (YAGNI: if no, stop)
+2. Does it already exist in this codebase? Reuse the helper, util or pattern that is already here
+3. Does the standard library do it? Use it
+4. Does a native platform feature cover it? Use it
+5. Does an already-installed dependency solve it? Use it
+6. Can it be one line? Make it one line
+7. Only then: write the minimum that works
+
+- Deletion over addition. Boring over clever. Fewest files possible
+- Shortest working diff wins, but only once the problem is understood. The smallest change in the wrong place is not lazy, it is a second bug
+- Fix the root cause, not the symptom. A report names a symptom; grep every caller and fix the shared function once, rather than patching the one path the report happened to name
+- No abstractions that were not asked for. No boilerplate nobody asked for
+- No new dependency if it can be avoided
+- Question complex requests: "Do you actually need X, or does Y cover it?"
+- Lazy is not flimsy: when two approaches are the same size, pick the edge-case-correct one
+- Never lazy about: understanding the problem, input validation at trust boundaries, error handling that prevents data loss, security, accessibility, or anything explicitly requested
+- Non-trivial logic gets one runnable check, the smallest thing that fails if the logic breaks. No frameworks, no fixtures. Trivial one-liners need no test
+
+### User Profile
+
+- Author name: `saravenpi`
+- Preferred task runner: `mise` when available
+- TypeScript runtime: `bun`
+- Package manager: `bun`

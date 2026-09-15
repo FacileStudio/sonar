@@ -1,0 +1,83 @@
+---
+description: research skill
+alwaysApply: false
+---
+
+---
+name: research
+description: >
+  Single-pass structured web research workflow using sonar search and headless page fetching.
+  Synthesizes a fully cited answer and records a mycelium artifact report. Use when researching
+  a topic, comparing tools or libraries, investigating technical questions, or producing a
+  written summary with verified sources. Runs on "/research". For multi-round, exhaustive
+  investigation, use /deepresearch instead.
+triggers: ["/research"]
+source: ""
+allowed-tools: Bash, Glob, Grep, Read, Edit, Write, mycelium_publish_report, sonar_search
+---
+
+# Research: sonar search + headless fetch, cited, artifacted
+
+Structured single-pass web research workflow. Sonar handles both multi-engine discovery (`sonar search`) and full-page reading (`sonar fetch`).
+
+Deliverable: A concise, cited answer in the conversation plus a comprehensive Mycelium artifact holding the full report.
+
+## Workflow
+
+### 1. Scope
+Formulate the core question in one sentence. Define 2-4 concrete search angles (e.g. core mechanics, benchmarks, known limitations, alternatives).
+
+### 2. Search
+Run one targeted query per angle with `sonar search`:
+
+```sh
+sonar search "your search query" -n 8
+```
+
+Do not hammer failing queries. Sonar manages engine fallbacks automatically; an empty result indicates a wider backend outage.
+
+### 3. Select sources
+Pick 2-5 authoritative sources. Prioritize primary documentation, engineering blogs, whitepapers, and source repositories over SEO aggregators and listicles.
+
+### 4. Fetch and read
+Extract full page markdown using Sonar's headless browser engine:
+
+```sh
+sonar fetch "https://example.com/article" > /tmp/page.md
+```
+
+For dynamic or single-page apps, specify `--wait-until networkidle`:
+
+```sh
+sonar fetch --wait-until networkidle "https://example.com/app" > /tmp/page.md
+```
+
+If a URL returns an error, anti-bot block, or paywall, record the failure and fall back to the next candidate URL.
+
+### 5. Synthesize
+Structure the answer according to ISO 24495-1 (plain language):
+- Lead with the concrete answer, then supporting reasoning.
+- One main idea per paragraph.
+- Distinguish verified facts from inference or model extrapolation.
+- Attribute every technical claim directly to its source URL.
+
+### 6. Publish artifact
+Write the complete report to a markdown file and record it with `mycelium artifact add`:
+
+```sh
+mycelium artifact add /tmp/research-report.md --title "Topic Research"
+```
+
+Report the canonical web URL (`https://<server>/artifacts/<id>`) and note the 30-day default expiry.
+
+## Citation standards
+
+- **Full visible URLs**: Write bare URLs (e.g., `https://example.com/page`) or titles followed by the visible URL. Do not hide links solely behind markdown anchor text.
+- **Point-of-claim attribution**: Cite sources directly in the sentence making the claim, not only in a footnote or trailing list.
+- **Read-before-citing**: Cite only content verified via `sonar fetch`. Do not use search snippets as authoritative evidence.
+- **Transparent tracking**: Document failed fetches, paywalls, and dead ends with their URLs and failure reasons.
+- **Label inferences**: Explicitly label deductions, estimates, or unverified claims as inference.
+
+## Conversation response format
+
+Deliver a 3-8 sentence executive summary in chat with inline URLs, link to the published Mycelium artifact, and list any fetch failures or caveats.

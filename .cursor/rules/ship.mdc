@@ -1,0 +1,188 @@
+---
+description: ship skill
+alwaysApply: false
+---
+
+---
+name: ship
+description: Release a new version of a project end to end. Use when the user says "ship", "release a new version", "cut a release", "tag a version", "push the release", or "deploy the new version". Also use when they explicitly ask for a tag + GitHub release + publish. Handles state verification, version bumping, checks/tests, tagging, pushing, and verifying the GitHub release.
+triggers: ["/ship"]
+source: ""
+allowed-tools: Bash, Glob, Grep, Read, Edit, Write
+---
+
+# ship — release a project
+
+One skill, one release flow. It is conservative by default: a bad tag is harder to delete than a forgotten commit. Do not skip checks to go faster.
+
+## When to use
+
+- Shipping any non-trivial release
+- Creating a git tag for a new version
+- Verifying a repo is ready before releasing
+- Cutting a GitHub release after pushing a tag
+
+Do not use for:
+
+- Trivial patch releases where the user explicitly confirms state and version
+- Documentation-only changes that do not change the package/artifact
+
+## Release sequence
+
+Run every step unless the user explicitly waives it. Waiving does not mean "skip silently" — say which step you skipped and why.
+
+### 1. State check
+
+The tree must be clean and on the release branch before anything touches a tag.
+
+Required checks:
+
+- On the expected default branch, usually `main` or `master`
+- No uncommitted changes
+- In sync with `origin/<branch>`
+
+If any check fails, stop and report. Do not auto-fix by stashing, resetting, or force-pushing.
+
+### 2. Version
+
+Identify the next version. Use semver:
+
+- patch: bug fixes only
+- minor: new features, non-breaking changes
+- major: breaking changes
+
+Do not guess from the commit count. Read the changelog, tag history, and any version files the repo carries (`package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `setup.py`, `__init__.py`, `pom.xml`, etc.).
+
+Update all version copies to the same value. Tag history drift is the most common release mistake.
+
+### 3. Changelog
+
+A release without a changelog is a release nobody can audit.
+
+Update the changelog before tagging. The repo should already have an `[Unreleased]` section. Move its contents under the new version heading. If there is no changelog, add one.
+
+Keep it short:
+
+- Added, Changed, Fixed, Removed
+- One line per change
+- No marketing copy
+
+### 4. Checks and tests
+
+Run the project's own quality checks before cutting a tag. The exact command depends on the repo:
+
+| Ecosystem | Typical check |
+|---|---|
+| Node | `npm test` or `pnpm test` |
+| Go | `go test ./...` |
+| Rust | `cargo test` |
+| Python | `pytest` or `python -m unittest` |
+| General | Look for `Makefile`, `justfile`, `mise.toml`, `package.json` scripts |
+
+If the project has a self-check target, such as `make check` or `just check`, prefer that.
+
+A release that breaks the test suite is not a release. Fix or abort.
+
+### 5. Commit
+
+Commit the version and changelog changes together. The commit message should follow the repo's convention.
+
+Conventional commits preferred:
+
+```
+fix: release v1.2.3
+chore: release v1.2.3
+feat: release v1.2.3
+```
+
+Do not include generated artifacts in the commit unless the repo explicitly versions them.
+
+### 6. Tag
+
+Tags are the source of truth. Create the tag on the release commit, then push both.
+
+```sh
+git tag v1.2.3
+git push origin v1.2.3 main
+```
+
+Use a `v` prefix unless the repo explicitly does not.
+
+### 7. GitHub release
+
+Many repos use GitHub Actions to build and publish the release when a tag is pushed. After pushing the tag:
+
+- Watch the GitHub Actions release workflow
+- Verify it completes successfully
+- Verify the release page shows the expected assets
+
+Do not create a draft release manually unless the repo has no automation. Manual drafts drift from the actual artifacts.
+
+### 8. Verify
+
+After the release workflow completes:
+
+- Confirm the tag exists on GitHub
+- Confirm the release page lists the correct version and assets
+- Confirm the published version matches what the repo declares
+
+If anything mismatches, stop and report. Do not delete and retag without checking whether consumers already fetched the bad release.
+
+## Good practices
+
+- One release flow, not six: prefer the repo's own release script or GitHub Actions over bespoke commands
+- Never tag a dirty tree
+- Never tag without running tests
+- Never push a tag before the commit is on `origin`
+- Never delete a public tag without checking whether it was already consumed
+- Prefer automation over manual steps. A scripted release is repeatable; an ad-hoc one is not
+
+## Repo-specific notes
+
+This skill is general. When a repo has its own release script, workflow, or convention, follow that instead. The release sequence above is the floor, not the ceiling.
+
+Common ecosystem signals:
+
+- `.github/workflows/release.yml` — GitHub Actions release
+- `scripts/release.sh`, `scripts/ship.sh`, `just release` — project release script
+- `.goreleaser.yml` — GoReleaser, tag triggers a build
+- `package.json` `version` field — Node version source of truth
+- `pyproject.toml` `version` — Python version source of truth
+- `Cargo.toml` `version` — Rust version source of truth
+
+If the repo has none of these, ask before cutting a tag.
+
+## Example: Go repo with GitHub Actions release
+
+```sh
+# 1. State check
+git status --short --branch
+git fetch origin
+git rev-parse HEAD && git rev-parse @{u}
+
+# 2. Version
+# Read main.go or go.mod for current version, bump to 1.2.3
+
+# 3. Changelog
+# Update CHANGELOG.md
+
+# 4. Checks
+go test ./...
+go vet ./...
+
+# 5. Commit
+git add .
+git commit -m "chore: release v1.2.3"
+
+# 6. Tag and push
+git tag v1.2.3
+git push origin v1.2.3 main
+
+# 7. GitHub release
+# Watch .github/workflows/release.yml complete
+gh run list --repo <owner>/<repo> --workflow release.yml --limit 1
+gh run watch <run-id> --repo <owner>/<repo>
+
+# 8. Verify
+gh release view v1.2.3 --repo <owner>/<repo>
+```

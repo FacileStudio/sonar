@@ -1,0 +1,48 @@
+---
+description: facile-build skill
+alwaysApply: false
+---
+
+---
+name: facile-build
+description: Facile suite build rules, applied on top of /build when the session works in a suite repo (Sablier, Nuage, Casier, Plume, Courrier, Agenda, Opus, Journal, Capsule, Vision, Glouton, Ardoise, caisse, porte, tronc, muse, pool, ...). Enforces the suite's gate order, migration discipline, porte/registre auth floor, muse UI rules and event contracts. Not for Grimoire or client vitrines.
+triggers: ["/facile-build"]
+source: ""
+allowed-tools: Bash, Glob, Grep, Read, Edit, Write
+---
+
+# facile-build
+
+Suite-wide build rules. Load on top of `/build`; this file wins where they
+overlap. Suite repos live at `~/Code/Facile/<Repo>/` and carry module paths
+like `github.com/FacileStudio/<Repo>[/<app>]`.
+
+## Plan first
+
+Run `/facile-plan` for anything beyond a one-line mechanical fix, then build
+from its plan. It names the exact files and which suite conventions apply.
+
+## Gate order
+
+1. `sh scripts/check.sh` at the repo root: gofmt + vet + test on every Go
+   module, then the client (`--go-only` to skip the client).
+2. `filet check` (the repo carries a `filet.yml`).
+Both green before anything ships. A filet failure is invalid code, not a
+warning. `scripts/check.sh` reports, it never rewrites (except `--format`).
+
+## Suite invariants
+
+- **Migrations**: forward-only, follow the repo's existing migration
+  convention and numbering. Ask first before any schema change.
+- **Auth**: never bypass or weaken porte/registre flows. Ask first near any
+  auth boundary. Run `/facile-review` before shipping auth-adjacent changes.
+- **UI**: muse design tokens and the shared Svelte 5 component library.
+  SvelteKit only. Never emit React, Next, Vue or Solid unless the user
+  explicitly asked for it this session. Load `/muse` for any UI work.
+- **Events**: respect existing event contracts. Changing one is a breaking
+  change: `!` on the commit type and a `BREAKING CHANGE:` footer, and say so
+  to the user before doing it.
+- **Module path**: use the canonical suite path. Check whether a `go.work`
+  exists before assuming a local build sees local edits to a sibling module.
+- **Local commands**: verify any command from this file or the repo docs by
+  running it once before relying on it; never guess a test command.

@@ -1,0 +1,87 @@
+---
+description: sonar skill
+alwaysApply: false
+---
+
+---
+name: sonar
+description: >
+  Multi-engine web search and headless page fetching CLI. Use when searching the web,
+  discovering sources, looking up current information, or extracting full markdown content
+  from URLs via headless browser. For structured research reports, see /research and /deepresearch.
+source: ""
+triggers: ["/sonar"]
+---
+
+# sonar — multi-engine search and headless page fetcher
+
+Binary: `sonar` (installs to `~/.local/bin/sonar`, source in `~/Code/Facile/sonar`)
+
+Sonar handles both discovery (`sonar search`) and content extraction (`sonar fetch`).
+
+## Core capabilities
+
+- **Multi-engine search (`sonar search`)**: Queries up to 11 engines in priority order with automatic fallback. Merges responses, dedupes by normalized URL, and ranks by engine trust weights.
+- **Headless page fetch (`sonar fetch`)**: Renders web pages with a headless browser (`go-rod` + stealth) and extracts clean markdown directly to stdout.
+- **Aggressive caching**: Results are cached per engine and query for 15 minutes in `~/.cache/sonar`. Repeated queries return instantly without hitting external APIs.
+- **Anti-blocking defenses**: Politeness throttling (minimum interval + jitter) and per-engine circuit breakers (tripping on HTTP 202/403/429 with cool-down periods) prevent IP blocks.
+
+## Search engines (default priority)
+
+| Engine | Type | Notes |
+|---|---|---|
+| brave, exa, tavily, firecrawl, serpapi, browserbase, brightdata, linkup | Keyed APIs | Provider-metered; active when key is in `~/.sonar.yml` or environment |
+| furet | Self-hosted SearXNG | On by default (`furet.facile.studio`); aggregates upstream engines |
+| bing | Scrape fallback | On by default as last resort; lower trust rank |
+| ddg | Scrape fallback | Off by default due to datacenter IP blocking |
+
+## Keys and configuration
+
+Keys are loaded from `~/.sonar.yml` or environment variables (`SONAR_<ENGINE>_KEY` or bare tiroir exports like `EXA_KEY`, `TAVILY_KEY`, `BRAVE_KEY`, etc.). Interactive shells and spawned agents inherit these automatically from tiroir via `~/.zshrc`.
+
+## CLI commands
+
+### 1. Web search
+
+```sh
+sonar search "your query here"
+sonar search -n 20 "multi word query"   # cap results (default: 10)
+sonar search --json "query"            # JSON output: [{Title, URL, Snippet, Engine}]
+```
+
+Use `--json` when parsing programmatically in scripts or subagents.
+
+### 2. Page fetch (headless browser)
+
+```sh
+sonar fetch "https://example.com/article"
+sonar fetch --wait-until domcontentloaded "https://example.com/static-page"
+sonar fetch --wait-until networkidle "https://example.com/spa-dashboard"
+```
+
+Flags:
+- `--wait-until`: Page load condition (`load`, `domcontentloaded`, `networkidle` [default], `none`). Use `networkidle` for single-page apps (SPAs) and dynamic JavaScript content.
+
+## MCP server
+
+`sonar mcp` exposes search over stdio MCP. Configure in `~/.nacelle.yml`:
+
+```yaml
+mcp:
+  sonar:
+    command: sonar
+    args: [mcp]
+```
+
+## Agent usage pattern
+
+1. **Search**: Run one targeted query with 5-10 results.
+2. **Filter**: Pick the 2-4 most authoritative candidate URLs based on title, domain, and trust ranking.
+3. **Fetch**: Read full content with `sonar fetch "<url>"`.
+4. **Cite**: Always cite verified content from `sonar fetch`, never unverified search snippets alone.
+
+## Troubleshooting
+
+- **No engines returned results**: All backends failed or were blocked. Do not hammer with retries; report the outage or rephrase.
+- **Single engine failure**: Sonar silently falls through to the next engine in the priority list.
+- **Bright Data**: Flaky by nature (rate limits and 15s cooldowns). If Bright Data fails, other keyed engines pick up the query.

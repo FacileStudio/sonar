@@ -8,14 +8,17 @@ import (
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
+	"github.com/go-rod/rod/lib/proto"
 	"github.com/go-rod/stealth"
 )
 
 // Rod renders web pages in a headless browser via go-rod with stealth mode
-// and extracts the main content text.
+// and extracts the main content as Markdown.
 type Rod struct {
 	Count         int
 	WaitCondition string
+	Selector      string
+	Timeout       time.Duration
 }
 
 // Name returns the engine identifier.
@@ -29,68 +32,87 @@ func (r *Rod) Search(ctx context.Context, query string, count int) ([]Result, er
 	return r.doSearch(ctx, query)
 }
 
-func launchBrowser(ctx context.Context) (*rod.Browser, error) {
-	u, err := launcher.New().Headless(true).Launch()
+func newLauncher() *launcher.Launcher {
+	return launcher.New().
+		Headless(true).
+		Leakless(true).
+		Set("headless", "new").
+		Set("disable-blink-features", "AutomationControlled").
+		Set("exclude-switches", "enable-automation").
+		Set("disable-infobars").
+		Set("no-sandbox").
+		Set("disable-setuid-sandbox").
+		Set("disable-dev-shm-usage").
+		Set("no-first-run").
+		Set("no-default-browser-check").
+		Set("window-size", "1920,1080").
+		Set("start-maximized").
+		Set("lang", "en-US,en")
+}
+
+func launchBrowser(ctx context.Context) (*launcher.Launcher, *rod.Browser, error) {
+	l := newLauncher()
+	u, err := l.Launch()
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrTransient, err)
+		return nil, nil, fmt.Errorf("%w: %s", ErrTransient, err)
 	}
 	br := rod.New().ControlURL(u).Context(ctx)
 	if err := br.Connect(); err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrTransient, err)
+		l.Kill()
+		return nil, nil, fmt.Errorf("%w: %s", ErrTransient, err)
 	}
-	return br, nil
+	return l, br, nil
 }
 
-func (r *Rod) doSearch(ctx context.Context, query string) ([]Result, error) {
-	br, err := launchBrowser(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer br.Close()
-
+func setupPage(br *rod.Browser, ctx context.Context) (*rod.Page, error) {
 	page, err := stealth.Page(br)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrTransient, err)
 	}
 	page = page.Context(ctx)
-	if err := page.Navigate(query); err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrTransient, err)
-	}
-	if err := r.wait(page); err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrTransient, err)
-	}
-	snippet, err := extractSnippet(page)
+	_ = page.SetViewport(&proto.EmulationSetDeviceMetricsOverride{
+		Width: 1920, Height: 1080, DeviceScaleFactor: 1, Mobile: false,
+	})
+	ua := "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+	_ = page.SetUserAgent(&proto.NetworkSetUserAgentOverride{
+		UserAgent: ua, AcceptLanguage: "en-US,en;q=0.9", Platform: "Linux x86_64",
+		UserAgentMetadata: &proto.EmulationUserAgentMetadata{
+			Brands: []*proto.EmulationUserAgentBrandVersion{
+				{Brand: "Chromium", Version: "130"},
+				{Brand: "Google Chrome", Version: "130"},
+				{Brand: "Not?A_Brand", Version: "24"},
+			},
+			FullVersion: "130.0.6723.69", Platform: "Linux", Architecture: "x86", Mobile: false,
+		},
+	})
+	return page, nil
+}
+
+func (r *Rod) doSearch(ctx context.Context, query string) ([]Result, error) {
+	l, br, err := launchBrowser(ctx)
 	if err != nil {
 		return nil, err
 	}
-	res := Result{Title: query, Snippet: snippet, URL: query, Engine: "rod", Priority: 12}
-	return []Result{res}, nil
-}
-
-func extractSnippet(page *rod.Page) (string, error) {
-	raw, err := pageHTML(page)
+	defer func() {
+		_ = br.Close()
+		l.Kill()
+	}()
+	page, err := setupPage(br, ctx)
 	if err != nil {
-		return "", fmt.Errorf("%w: %s", ErrTransient, err)
+		return nil, err
 	}
-	snippet := html2text(raw)
-	if snippet == "" {
-		return "", fmt.Errorf("%w: no content extracted", ErrTransient)
+	if err := page.Navigate(query); err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrTransient, err)
 	}
-	return snippet, nil
-}
-
-func pageHTML(page *rod.Page) (string, error) {
-	if ok, el, _ := page.Has("article"); ok && el != nil {
-		if h, err := el.HTML(); err == nil && h != "" {
-			return h, nil
-		}
+	_ = r.wait(page)
+	title, snippet, err := extractContent(page, r.Selector)
+	if err != nil {
+		return nil, err
 	}
-	if ok, el, _ := page.Has("body"); ok && el != nil {
-		if h, err := el.HTML(); err == nil && h != "" {
-			return h, nil
-		}
+	if title == "" {
+		title = query
 	}
-	return page.HTML()
+	return []Result{{Title: title, Snippet: snippet, URL: query, Engine: "rod", Priority: 12}}, nil
 }
 
 func (r *Rod) wait(page *rod.Page) error {
@@ -98,21 +120,24 @@ func (r *Rod) wait(page *rod.Page) error {
 	if cond == "" {
 		cond = "networkidle"
 	}
-	switch cond {
-	case "networkidle":
-		page.Timeout(15*time.Second).WaitRequestIdle(500*time.Millisecond, nil, nil, nil)()
-	case "domcontentloaded":
-		if err := page.Timeout(15*time.Second).WaitDOMStable(100*time.Millisecond, 0.01); err != nil {
-			return err
-		}
-	case "load":
-		if err := page.WaitLoad(); err != nil {
-			return err
-		}
-	case "none":
+	if cond == "none" {
 		return nil
-	default:
+	}
+	if cond != "networkidle" && cond != "domcontentloaded" && cond != "load" {
 		return fmt.Errorf("unknown wait condition %q", cond)
 	}
-	return nil
+	waitTimeout := r.Timeout
+	if waitTimeout <= 0 {
+		waitTimeout = 15 * time.Second
+	}
+	return rod.Try(func() {
+		switch cond {
+		case "networkidle":
+			page.Timeout(waitTimeout).WaitRequestIdle(500*time.Millisecond, nil, nil, nil)()
+		case "domcontentloaded":
+			_ = page.Timeout(waitTimeout).WaitDOMStable(100*time.Millisecond, 0.01)
+		case "load":
+			_ = page.Timeout(waitTimeout).WaitLoad()
+		}
+	})
 }

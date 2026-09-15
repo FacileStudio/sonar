@@ -1,0 +1,60 @@
+---
+description: vhs skill
+alwaysApply: false
+---
+
+---
+name: vhs
+description: Record a terminal demo as a GIF with charmbracelet/vhs — write the .tape script, run vhs, and wire the resulting GIF into the project README. Use when the user asks for a terminal recording, demo GIF, asciinema-style capture, CLI showcase, or a README demo for a command-line tool. Also runs on "/vhs".
+triggers: ["/vhs"]
+source: ""
+allowed-tools: Glob, Grep, Read, Edit, Write, Bash
+bash-timeout: 600000
+---
+
+# vhs
+
+Generate a terminal demo GIF with [VHS](https://github.com/charmbracelet/vhs).
+
+## Prerequisites
+
+`vhs` and `ttyd` must be on PATH. Check with `which vhs ttyd` before doing anything else; if either is missing, stop and tell the user to install them (`mise use -g github:charmbracelet/vhs` and `brew install ttyd`) rather than trying to work around it.
+
+## Process
+
+1. **Read the project first.** Check `package.json`, `Cargo.toml`, `go.mod`, or `pyproject.toml` for the binary name and entry point. Read the README for the commands the user actually documents. Never invent a command.
+2. **Write the tape** to `assets/demo.tape` (or `docs/` on larger projects). Keep the tape committed — it is the source, the GIF is the artifact.
+3. **Run it**: `vhs assets/demo.tape`. This takes minutes for longer recordings; the extended bash timeout above exists for that.
+4. **Verify the GIF exists and is non-trivial in size** before touching the README. A 0-byte or 2KB GIF means the recording failed silently.
+5. **Link it in the README** under a `## Demo` section near the top, using a relative path.
+
+## Tape template
+
+```tape
+Output assets/demo.gif
+
+Set FontSize 14
+Set Width 1200
+Set Height 600
+Set Theme "Tokyo Night"
+Set TypingSpeed 60ms
+
+Type "mytool --help"
+Enter
+Sleep 2s
+
+Type "mytool build ./src"
+Enter
+Sleep 4s
+```
+
+`Hide` / `Show` wrap setup commands (installs, `cd`, env vars) that should run but not appear in the recording.
+
+## Rules
+
+- Only record commands that actually work. Run them in the shell first.
+- Keep it under 30 seconds. One idea per GIF; make several rather than one long one.
+- `Sleep` long enough after output for a human to read it. Typing too fast is the most common mistake.
+- No secrets, tokens, real paths with usernames, or private hostnames in the frame.
+- Themes: Tokyo Night, Dracula, Nord, Catppuccin Mocha. Pick one and reuse it across every GIF in a project.
+- Regenerate rather than hand-edit: if the demo is wrong, fix the tape and re-run.

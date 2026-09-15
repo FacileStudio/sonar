@@ -1,0 +1,46 @@
+---
+description: 30-flows
+alwaysApply: true
+---
+
+## Flows
+
+A **flow** is a recorded shell procedure: ordered steps in `~/.mycelium/flows/<name>.yml`, run by `mycelium flow run <name>` (or `run_flow` MCP tool). Every execution produces a JSON artifact with per-step exit codes, durations, and output. Flows sync across machines.
+
+### What flows are for
+
+The wiki holds **why** (judgment, context, gotchas). A flow holds **what** (the exact commands, in order, that already worked). Prose you must re-reason from is not a procedure. Steps with no explanation are not memory. Write both, and link them.
+
+### Mandatory: check flows before typing anything
+
+This is a hard rule. Before you type any multi-step shell sequence, before you reach for your browser, before you write a one-off pipeline:
+
+1. Run `mycelium flow list` — see what exists
+2. If a flow covers your task, run it
+3. If no flow covers it and you catch yourself repeating 3+ commands, scaffold one
+
+Failure to check is the same class of mistake as writing a helper that already exists. Flows save tokens, time, and errors.
+
+### When to create a new flow
+
+Stop what you are doing and scaffold a flow when ANY fires:
+
+1. **Repetition.** You type the same 3+ commands twice this session. That is a procedure.
+2. **Wiki prose that is really a procedure.** A page says "run X, then Y, then Z". Convert it.
+3. **Re-deriving.** You read a repo to figure out how to build/test/deploy it, and the answer is commands somebody already knew.
+4. **The human says "I do this every time."** They just told you. Listen.
+
+When one fires, immediately tell the human and offer to write the flow. Do not silently write one mid-task; do not silently skip it either. The human decides, but you raise it.
+
+### Creation checklist
+
+```
+mycelium flow list                    # check nothing already covers it
+mycelium flow add <name>             # scaffold
+# fill the YAML (see flow skill for format)
+mycelium flow trust <name> --yes     # only after human approval
+```
+
+### Reference
+
+YAML format details, model extension documentation, and MCP tool fallbacks are in `~/.mycelium/skills/flow.md`. This rule file is the mandate; the skill is the reference. Both apply.

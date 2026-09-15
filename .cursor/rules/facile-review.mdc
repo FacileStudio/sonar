@@ -1,0 +1,107 @@
+---
+description: facile-review skill
+alwaysApply: false
+---
+
+---
+name: facile-review
+description: Review code in a Facile suite repo against generic review standards PLUS the suite conventions — the porte/registre auth security floor, the filet gate, backend file architecture, muse/UI, event contracts. Use when reviewing ANY code under ~/Code/Facile/ in a suite repo (Sablier, Nuage, Casier, Plume, Courrier, Agenda, Opus, Journal, Capsule, Vision, Glouton, Ardoise, MonorepoBoilerplate, GoSvelteBoilerplate, porte, tronc, caisse, muse, enveloppe, pool). NOT for Grimoire or client vitrines — those get /review. Also runs on "/facile-review".
+triggers: ["/facile-review"]
+source: "own work root + ~/.mycelium/memory standards/conventions + ~/.mycelium/memory projects/{registre,porte-rollout,porte-machine-tokens} + ~/.mycelium/memory syntheses/suite-harmonization-census"
+allowed-tools: Bash, Glob, Grep, Read, Edit, Write
+---
+
+# facile-review — Facile suite code review
+
+The generic spine (process, severity labels, output template, mindset) applies — if `review.md` is not already in context, read `~/.mycelium/skills/review.md`. This skill ADDS the suite layer and OVERRIDES generic advice on specific points (override table below). One command, three passes:
+
+```
+Pass 0: filet gate        (MANDATORY)
+Pass 1: generic spine     (review.md process)
+Pass 2: suite overlay     (reconcile + suite-only checks)
+```
+
+## Scope guard (first)
+
+Suite repo = under `~/Code/Facile/`, or module path / remote matches `github.com/FacileStudio/`. If NOT: say "not a suite repo — running generic review instead" and follow `review.md`. **Grimoire is explicitly NOT suite** (personal, `github.com/saravenpi/grimoire`) — it gets `/review`.
+
+## Pass 0 — filet gate (MANDATORY)
+
+Run `filet check <path>` (see `~/.mycelium/skills/filet.md` for flags/formats). `.filet.yml` is authoritative and walks up to the repo root. Report findings grouped by rule id, then triage: which are real, which are false positives. **Never suggest raising a threshold or adding to `disabled:` as the fix** — that is the failure mode filet exists to prevent. `arch.*` findings are architecture violations, not nits — never disable them. Also run `filet test` if a suite is present.
+
+## Pass 1 — generic spine
+
+Full review as `review.md`: scope → context → design → line-by-line → summary. Read the language reference for the stack.
+
+## Pass 2 — suite overlay
+
+### Override table — generic advice that does NOT apply
+
+| Generic advice | Suite reality (wins) |
+|---|---|
+| "Prefer bearer tokens / Authorization header first" | porte reads the **cookie before** the Authorization header. A cookie-authenticated **mutating** request without `X-Facile-CSRF` gets 403. Adding `credentials: 'include'` without the header = every write 403s while reads work — ships green to prod invisibly (bearer tests are exempt by design). Verify with the transport the browser uses, not a real credential. |
+| "Extract the duplicated code" (DRY) | Per-app user tables and the porte auth code are **deliberately duplicated** — the suite is standalone islands by product promise, and the shared auth package hasn't landed. Do NOT flag deliberate duplication; DO flag genuinely new duplication. |
+| "No new dependency" | porte / registre / tronc / caisse / muse / enveloppe / pool are **REQUIRED** infrastructure — hand-rolling auth to avoid a dep is the anti-pattern. The no-dep principle applies only outside the blessed set. |
+| "Favor approving, don't demand perfection" | Still true generally — EXCEPT anything touching auth/identity: there, **"not being able to verify is a reason to refuse"**. Security floor beats approval bias. |
+| "Add golangci-lint / stricter eslint" | **filet is the suite gate.** Two linters = conflicting authority. Don't. |
+| "versioned migrations are optional" | **Most of the Go family now runs goose v3 via `tronc/migrate`** — that is the settled design, see `standards/migrations.md`. A change that *removes* or *skips* the goose setup is a regression, not a cleanup. |
+
+### Auth floor (porte / registre) — hard gates
+
+Anything touching auth/identity: check the known bug classes first. Wiki: `~/.mycelium/memory/bugs/porte-*.md`, `~/.mycelium/memory/projects/porte-rollout.md`, `~/.mycelium/memory/projects/porte-machine-tokens.md`, `~/.mycelium/memory/projects/registre.md`, `~/.mycelium/memory/conventions/facile-idp-registre.md`.
+
+- Cookie-authenticated mutations REQUIRE `X-Facile-CSRF`. Verify with the browser's transport, not a bearer token.
+- **The IdP is registre at `sso.facile.studio`, not Authentik** (Authentik was removed 2026-08-25). Registre's **ID token carries no `email`** (`IDTokenUserinfoClaimsAssertion=false`), and porte's callback refuses a login without one — so every first browser login against a fresh registre app dies at the callback until the email fix lands. Before any backfill or adoption plan, check whether the ID token actually carries `email` and whether the app has an identity row for the subject.
+- A refusal must cost what the acceptance costs (no early return before the argon2 hash — timing oracle).
+- **porte floor: v0.5.x** (the suite standard since the machine-token line landed). v0.4.0 added offline JWT bearer verification (`OIDC_MACHINE_AUDIENCE`), the device exchange (`OIDC_CLI_AUDIENCE`), and `porte/keys` (named API keys). Echo is the last straggler on v0.3.1 — anything touching auth should be at v0.5.x. `OIDC_MACHINE_AUDIENCE` is the app's own client id from `seed.yaml` (± `OIDC_CLI_AUDIENCE=facile-cli` for the exchange); never set them to the same token class to "gain the exchange" — that silently breaks existing service-account tokens.
+- A verified bearer JWT leaves **no session row**, so back-channel logout cannot touch it; `IdentityStore.Find(issuer, sub)` is the only deactivation lever. Flag any use of a JWT as if it were a revocable session.
+- `POST /auth/logout` idempotent (porte v0.2.8+): a stale cookie must still clear.
+- SSO_ONLY apps: a refused login and a success are **BOTH a 302** — read `Location`, not the status code; the `error` param must render outside any `SSO_ONLY` gate.
+
+### Backend file architecture (Go family) — hard layout checks
+
+- Layout `apps/api` + `apps/client`; **no** `packages/`. Module path `github.com/FacileStudio/<repo>/apps/api` — a fork that inherited bare `module api` is a bug.
+- Migrations: goose v3 through `tronc/migrate`, SQL in `apps/api/migrations/00001_*.sql` embedded via `//go:embed migrations/*.sql` at **package root**, as its **own** package (not `package main` — test packages can't reach it otherwise). Sequential goose numbering (`goose -s create`). Never hand-create the `goose_db_version` table; baseline = let goose create it, then `INSERT` the version. Full recipe and the GORM-naming rules in `standards/migrations.md`.
+- `main()`: `func main() { os.Exit(run()) }` with `run() int` — a bare `return` from main exits **0** and reads as a clean shutdown to Docker/Dokploy. A failed migration must exit 1.
+- `db.DB()` is called ABOVE the migrate step (the standard requires hoisting it above what was `schemas.Migrate`).
+- Router (chi): `router.Route("/api", ...)`, SPA catch-all registered **LAST** (anything after is unreachable), `CLIENT_DIR=/client` explicit (distroless WORKDIR trap), `PORT` pinned in compose.
+- No Go sqlite/mysql/sqlserver/clickhouse driver in go.mod — the `scripts/check.sh` gate (migrations standard, "Postgres everywhere"). A GORM `default:` tag differing from the Go zero value = silent data bug. `scripts/check.sh` exists and passes.
+- Go version: go.mod and builder image match — goose floor is 1.25; the family is on 1.26 (`golang:1.26-alpine` with `go 1.26`). A mismatch (e.g. GoSvelteBoilerplate: `golang:1.25-alpine` image vs `go 1.26`) is a finding, and is exactly the class of drift to flag.
+
+### TS family checks
+
+- Turborepo `apps/*` + `packages/*`; bun runtime; Hono + tRPC 11 backend, SvelteKit 5 client, Prisma.
+- **zod major split**: don't introduce a v4 dep into a v3 repo (it blocks the shared contract package).
+- Svelte 5 runes; no legacy stores.
+- Client base URL relative (`/api`) — never absolute; the `/api/api/...` double-prefix bug class.
+
+### UI layer (muse)
+
+- Tokens, not hex (`bg-fc-bg`, `text-fc-fg`...); never hardcode a color.
+- Svelte 5 runes; no `export let`.
+- GSAP + `prefers-reduced-motion`; mobile-first 360px; hit targets ≥44px.
+- Cross-platform client: never hover-only affordances (Capacitor ships the same markup, hover is untouchable).
+
+### Events / interop
+
+- Event envelope contract = `@facile/events` (enveloppe); events key on `actor_email` — apps that can't supply it (Grimoire, Capsule, Perception) are known gaps, not new bugs.
+- Cross-repo deps via `github:FacileStudio/<repo>#<branch>`; no new registries.
+
+### Deployment shape (only if infra files are in the diff)
+
+- One container, one router, one hostname per app. `expose` not `ports`. No `PathPrefix`/`stripprefix` (mono-container form).
+- Compose labels REPLACE Dokploy's — don't add labels to a panel-routed service.
+- `/api/health` green says nothing about the front — a deploy check must load the page + a real asset (see `GoSvelteBoilerplate/scripts/verify-deploy.sh`).
+- Before deleting a hostname: grep deployed env vars (`OIDC_REDIRECT_URL`, `*_URL`), not just code.
+
+## Documentation sources (link, don't re-derive)
+
+- Standards: `~/.mycelium/memory/standards/{migrations, cli, docs}.md`
+- Conventions: `~/.mycelium/memory/conventions/facile-idp-registre.md`, `porte-password-contract.md`, `facile-auth-hashing-cost.md`, `facile-auth-screens.md`, `facile-test-layout.md`
+- Suite audit + census: `~/.mycelium/memory/syntheses/suite-harmonization-census.md` (replaces the deleted `~/Code/Facile/Wiki/`)
+- Bugs: `~/.mycelium/memory/bugs/porte-*.md`
+- Per-app state + gotchas: `~/Code/Facile/<repo>/CLAUDE.md`; the shared `tronc/migrate` standard in `standards/migrations.md`
+
+## Output
+
+Same template as `review.md`. Label suite-specific findings with their layer, e.g. `🔴 [auth]`, `🟡 [arch]`.

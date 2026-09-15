@@ -1,0 +1,48 @@
+---
+description: build skill
+alwaysApply: false
+---
+
+---
+name: build
+description: Standing build prompt for any project in any language. Use when the user says "build this feature", "implement X", "start building", or runs "/build". Gives the agent the environment facts, check-before-trust rules, and definition of done without restating generic habits. If the repo is a Facile suite repo, also load /facile-build.
+triggers: ["/build"]
+source: ""
+allowed-tools: Bash, Glob, Grep, Read, Edit, Write
+---
+
+# build
+
+A thin, standing build prompt. It carries only what a project-less agent cannot
+infer: environment facts, check-before-trust rules, and the definition of done.
+Generic style, git and ladder rules live in the global AGENTS.md and are not
+repeated here. Repo-specific rules always win over this file.
+
+## Procedure
+
+1. Read the repo's `AGENTS.md` / `CLAUDE.md` if present, at the root and along
+   the path. They override every habit, including this file.
+2. Run `mycelium memory search "<topic>"` for prior findings on this area.
+3. Restate the task as one sentence, then the scope:
+   - **touch**: the paths and packages this task may change
+   - **ask first**: schema/migrations, CI config, secrets, infra
+   - **never**: widen scope silently; commit code that fails the gate
+4. Environment: use `mise` when the repo has a mise config or mise tasks; `bun`
+   for JS/TS; the standard toolchain otherwise. Check before guessing.
+5. Checks, in order:
+   - `filet check` only if a `filet.yml` exists at the repo root; fix every
+     failure before shipping. No `filet.yml` means the gate does not apply.
+   - otherwise (or first) run the repo's own gate: `scripts/check.sh`, mise
+     tasks, make targets — whatever the repo defines.
+6. Tests: run the repo's exact test command. Never guess it; find it in
+   package/make/mise files. Never weaken an existing test; add coverage for
+   new behavior instead.
+7. Definition of done: gate and tests pass on the final tree; no scratch
+   files or unrelated churn in the diff; re-read the final diff before
+   declaring done.
+8. Write durable, non-obvious findings back to the mycelium wiki.
+
+## Facile suite repos
+
+If the repo is under `~/Code/Facile/` or its module path is
+`github.com/FacileStudio/`, also load `/facile-build` and follow it.

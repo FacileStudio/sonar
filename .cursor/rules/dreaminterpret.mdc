@@ -1,0 +1,100 @@
+---
+description: dreaminterpret skill
+alwaysApply: false
+---
+
+---
+name: dreaminterpret
+description: Interpret a single dream psychologically — find its emotional center, connect it to waking life, and output a structured reading with alternates and a confidence level. Use when the user describes a dream and wants to know what it means, asks about a recurring dream or nightmare, or wants a dream written up for their Brain. Personal-association based, not dream-dictionary symbolism. Also runs on "/dreaminterpret".
+triggers: ["/dreaminterpret"]
+source: ""
+---
+
+# dreaminterpret
+
+Interpret one dream well. Not a batch job: no file hunting, no date selection, no archive bookkeeping. One dream, right now.
+
+Every interpretation is a hypothesis, not a verdict.
+
+## Input
+
+Required: the dream description.
+
+Useful if offered: current life context, emotions during the dream, emotions on waking, recurring symbols or people from older dreams.
+
+If context is thin, ask at most one or two of:
+
+- "What was the strongest emotion in the dream?"
+- "Does this person or place mean something specific to you?"
+- "Has this theme shown up in other dreams?"
+- "Anything going on lately that feels related?"
+
+Then interpret with what you have. Do not derail into data collection.
+
+## Method
+
+1. **Find the emotional center.** What feeling drives the dream — fear, shame, desire, grief, conflict, curiosity, relief, something stranger? The image is usually metaphorical; the emotion is usually direct.
+2. **Map the structure.** Setting, characters, conflict, shifts in control, repeated images, ending.
+3. **Personal meaning before universal symbols.** A house does not always mean X. Start from what the symbol means for this dreamer in this dream.
+4. **Continuity over code-breaking.** Ask "what in waking life does this resemble?" — recent stress, relationships, identity, unfinished decisions, ambition, loss, change.
+5. **Watch for social threat material.** Humiliation, pursuit, being evaluated or ignored, failing a task, losing control, arriving late, being unable to speak. These map to social threat, self-worth, and pressure more often than to anything exotic.
+6. **Track movement, not just meaning.** Compare opening to ending. Toward mastery, avoidance, collapse, repair, or repeated failure? The direction often says more than any single symbol.
+7. **Separate observation from inference.** Be explicit about what is in the dream versus what is your reading of it.
+8. **Use prior dreams carefully.** Recurring emotional situations matter more than recurring objects — a recurring elevator matters less than a recurring loss of agency. Mention a pattern only if it strengthens the reading of this dream.
+9. **Match confidence to evidence.** High confidence only when the dream, the dreamer's associations, and waking context all point the same way. Otherwise stay tentative, and offer one or two alternate readings.
+
+Bizarreness, scene jumps, impossible spaces, and identity shifts are normal features of dreaming. Treat them as the brain dramatizing a concern, not as encoded prophecy.
+
+## Output
+
+```markdown
+# Dream Interpretation
+
+## Dream Summary
+[2-4 sentences, plainly.]
+
+## What Stands Out
+- [Key emotional or narrative feature]
+- [Important symbol, person, or setting]
+- [Conflict, tension, or repeated pattern]
+
+## Main Interpretation
+[The most likely psychological meaning. Connect dream events to emotions and
+waking-life concerns. Be specific.]
+
+## Alternate Readings
+- [Plausible alternate]
+- [Second alternate, only if useful]
+
+## Links To Waking Life
+- [Likely real-life trigger or concern]
+- [Relationship, identity, work, stress, or change connection]
+- [Pattern from prior dreams, if any]
+
+## Questions To Reflect On
+- [Question that tests the interpretation]
+- [Question about emotion, conflict, or desire]
+- [Question connecting the dream to recent life]
+
+## Confidence
+[Low / Medium / High] because [brief reason].
+```
+
+This structure mirrors `$BRAIN/Templates/dream_interpretation_template.md`. If you change the flow here, update that template too.
+
+## Style
+
+- Direct, thoughtful, specific. A perceptive human, not a crystal shop FAQ.
+- Do not overpraise the dream, moralize, or invent trauma and hidden motives.
+- Never diagnose mental illness from a dream.
+- If the dream is bizarre, say so plainly and extract the emotional logic anyway.
+
+## Safety
+
+If the dream is intensely distressing or a repeating nightmare: acknowledge the distress without dramatizing it, note that recurrent nightmares are worth raising with a therapist or sleep specialist, and mention imagery rehearsal therapy as an evidence-based option.
+
+## Grounding
+
+The method draws on Domhoff (dream content tracks waking concerns and social life; series beat isolated symbols), Hartmann (the central image carries the emotional gist), Cartwright (dreams work on emotional concerns, especially relationship stress), Solms and affective neuroscience (dreams organize around felt needs and drives), threat-simulation theory for pursuit and failure dreams, and modern sleep research (dreaming occurs in both REM and non-REM; no single theory explains all of it).
+
+Apply the method. Do not name-drop the researchers at the user unless it genuinely helps.

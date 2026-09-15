@@ -1,0 +1,142 @@
+---
+description: review skill
+alwaysApply: false
+---
+
+---
+name: review
+description: Review code changes and produce a severity-labeled, actionable review report. Use for any code review — uncommitted working-tree changes, a feature branch's diff vs main, an open PR, or a specific file/package. Works in any repo (personal projects, client work, third-party code). For Facile suite repos (under ~/Projects/Facile/Code/, or module path / remote already github.com/FacileStudio/), prefer /facile-review instead — it has the suite conventions. Also runs on /review.
+triggers: ["/review"]
+source: "own work root + https://github.com/awesome-skills/code-review-skill (MIT) + google/eng-practices/review/reviewer"
+allowed-tools: Bash, Glob, Grep, Read, Edit, Write
+---
+
+# review — generic code review
+
+You are an advisor, not a gate. Solo dev means the report must be skimmable and actionable, not bureaucratic. Catch bugs, edge cases, security issues and maintainability problems before they ship — and teach while you do it.
+
+## Scope detection (first step)
+
+Determine what to review:
+
+| Situation | Command |
+|---|---|
+| working tree dirty | `git diff` (unstaged + staged) |
+| feature branch | `git diff main...HEAD` (or `origin/main`) |
+| PR context, `gh` available | `gh pr diff` (offer it) |
+| path argument | only that file/package |
+| clean tree, no args | ask what to review |
+
+Read `git status` and `git diff --stat` first. If the diff is ~400+ lines, say so and triage by file/package — do not try to hold 2000 lines at once. Group findings by area.
+
+## Cross-guard
+
+If this is a Facile suite repo — lives under `~/Projects/Facile/Code/`, or module path / remote matches `github.com/FacileStudio/` — STOP and point the user to `/facile-review`. It has the suite conventions (auth floor, filet gate, architecture invariants) that generic review lacks. If the user insists on generic, proceed but note the gap.
+
+## Pass 0 — mechanical gate (preferred)
+
+If `filet` is available (`which filet`) or the repo has `.filet.yml`: run `filet check <path>` first. Deterministic findings come before model reasoning — never reimplement by hand (by reading source) what a linter answers. Report the counts grouped by rule id; triage which are real; fix nothing (review ≠ fix).
+
+If no filet: know whether the reviewed code even builds/passes — run the repo's test suite if cheap (`filet test` or the project's own command).
+
+## Review process
+
+### Phase 1 — context (2 min)
+- What is the change trying to do? Read the diff, PR description, linked issue.
+- Which files are touched, what is the blast radius?
+- Reuse check: before flagging "duplicate code", is there an existing util/pattern the change should have used?
+
+### Phase 2 — high level (design)
+- Does the solution fit the problem? Does a simpler approach exist?
+- Over-engineering: solving a speculative future problem instead of the one in front of you?
+- Right location: does this belong here, or in a helper/library?
+- Complexity: weight cognitive complexity (nesting), not line counts. A triple-nested `if` costs more than a 12-case `switch`.
+
+### Phase 3 — line by line
+Per file: logic & correctness (edge cases, off-by-one, null checks, race conditions), security (input validation, injection, secrets, authz), performance (N+1, loops, leaks), maintainability (naming, single responsibility), error handling (ignored errors, lost context).
+
+Read the relevant reference for the stack — they are at `~/.mycelium/skills/references/`:
+- Go: `go.md` · Svelte/SvelteKit: `svelte.md` · TypeScript: `typescript.md`
+- Security cross-cutting: `security.md` · Rust/Docker/shell: quick tables below
+
+### Phase 4 — summary
+- Verdict (advisory): approve / comment / request-changes
+- 2-3 sentences on overall health
+- What you liked — praise is part of review
+
+## Severity labels
+
+- 🔴 **Critical** — must fix before merge (bug, security, data loss)
+- 🟡 **Important** — should fix; discuss if you disagree
+- 🟢 **Nit** — optional polish; prefix `Nit:`
+- 💡 **Suggestion** — alternative approach
+- 📚 **Learning** — educational, no action needed
+- 🎉 **Praise** — good work
+
+## Output template
+
+ALWAYS use this exact structure:
+
+```
+## Files Reviewed
+- path/to/file.go (lines 12-87)
+
+## 🔴 Critical
+- path:line — what and why (concrete: "error ignored on line 42 breaks the retry path")
+
+## 🟡 Important
+- ...
+
+## 🟢 Nits
+- ...
+
+## 💡 Suggestions / 🎉 Praise
+- ...
+
+## Summary
+Verdict + 2-3 sentences.
+```
+
+## Mindset rules (Google eng-practices, condensed)
+
+- Favor approving when the change improves overall code health — even if not perfect. "Perfect code" does not exist, only better code.
+- Don't demand polish of every tiny piece; that is what `Nit:` is for.
+- Review the change's intent, not your preference. "I would have written it differently" is not a finding.
+- Never block forward progress purely over style.
+- Be specific: `file:line — what — why`. Bad: "this is wrong". Good: "this could double-charge when the webhook retries; consider an idempotency key".
+
+## Language quick tables
+
+### Go
+- Errors wrapped with `%w`, compared with `errors.Is/As` — never bare `return err` without context, never `%v`
+- goroutines: exit mechanism (context cancellation), no leaks; `sync.WaitGroup` or `errgroup`
+- context propagated, not swallowed
+- receiver: pointer for mutation, value for immutable
+- Go < 1.22 loop-variable capture, variable shadowing, map init
+- `defer` inside loops
+
+### TypeScript / Svelte
+- no `any` escaping; `unknown` for unparsed input
+- async errors handled (try/catch or `.catch`); no floating promises
+- strict null checks respected; no `!` where avoidable
+- Svelte 5 runes: `$state`/`$props`/`$derived`/`$effect`; no `export let`, no legacy stores where a rune fits
+- load functions: handle errors, never throw raw
+
+### Rust
+- no `unwrap`/`expect` in library paths (context or `?`); `Result`/`Option` handled
+- borrows avoided by design, not by `clone()`; clone where fine, but note perf on hot paths
+- `unsafe` justified and minimal
+
+### Docker
+- pinned base images (no `latest`), non-root user, `HEALTHCHECK` present, no secrets in `ENV`/`ARG`, `.dockerignore` exists, `COPY` order (deps before source), multi-stage for build deps
+
+### Shell
+- `set -euo pipefail` in scripts; no bare `curl | bash` without function-wrapping (truncation safety), quoted variables
+
+## Tools
+- `gh` CLI for PR operations (`gh pr diff`, `gh pr review`)
+- `filet` for the mechanical gate
+- `git` for scope
+
+## Optional second opinion
+If the review is large or security-sensitive, you may spawn the `reviewer` subagent for an independent pass and reconcile. Not required — and a fresh-eyes pass is only worth its cost on genuinely scary diffs.

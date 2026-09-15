@@ -1,0 +1,166 @@
+---
+description: flow skill
+alwaysApply: false
+---
+
+---
+name: flow
+description: Run and create mycelium flows — recorded shell procedures that capture multi-step tasks so nobody re-derives them. Use when the user asks to check CI, verify health, run a preflight check before releasing, or run the suite quality gate. Also use when you catch yourself typing the same 3+ commands twice in one session. Also runs on "/flow".
+triggers: ["/flow", "/flows"]
+source: ""
+allowed-tools: Bash, Glob, Grep, Read, Edit, Write
+---
+
+# flow — mycelium flows
+
+A flow is a recorded procedure: ordered shell steps in `~/.mycelium/flows/<name>.yml`, run by `mycelium flow run <name>` (or the `run_flow` MCP tool if your harness exposes it). Each run produces a JSON artifact. Flows sync across machines.
+
+**Rule**: if a flow covers what you are about to do, run it instead of typing the commands by hand. The flow is tested, recorded, and documents itself. You do not need to remember the flags. This is the same rung of the engineering ladder as "does this already exist in the codebase" — check flows before reaching for ad-hoc commands.
+
+---
+
+## Available flows
+
+| Flow | Run it when... | Command |
+|---|---|---|
+| `cert-expiry` | Check SSL cert expiry for domains (`CERT_HOSTS`), fail if any expires in <30d | `mycelium flow run cert-expiry` |
+| `ci-status` | Need the last 5 CI runs and the latest failure details before reviewing, merging, or releasing | `mycelium flow run ci-status` |
+| `deploy-verify` | Before/after a deploy — HTTP health-check `VERIFY_URLS`, fail on non-2xx | `mycelium flow run deploy-verify` |
+| `dokploy-env-safe` | Merge keys into a dokploy compose env and write the FULL block back (needs `COMPOSE_ID`, `ENV_UPDATES`, `APPLY=1` to write) | `mycelium flow run dokploy-env-safe` |
+| `mycelium-health` | The human mentions sync being stuck, doctor failing, or the server being down | `mycelium flow run mycelium-health` |
+| `pr-scan` | List open PRs with labels, age, and whether each one's CI is passing | `mycelium flow run pr-scan` |
+| `release-preflight` | Before cutting a release or tagging — checks main, clean tree, origin parity, version drift | `mycelium flow run release-preflight` |
+| `repo-health` | Before starting work — branch, clean tree, up/downstream, last tag, CI state | `mycelium flow run repo-health` |
+| `suite-check` | After touching a Facile suite Go repo — runs `scripts/check.sh` then `filet check` | `mycelium flow run suite-check` |
+
+---
+
+## Before reaching for ad-hoc commands: ALWAYS check flows first
+
+This is an **order of operations rule**, not a suggestion. The flow skill sits at rung 2.5 of the engineering ladder — between "does it already exist in the codebase?" and "does the standard library do it?". Before you type a multi-step shell sequence:
+
+1. Run `mycelium flow list` to see what is available
+2. If a flow matches, run it instead
+3. If nothing matches and you catch yourself repeating 3+ commands, scaffold one
+
+Failure to check is the same class of mistake as writing a helper that already exists in the codebase.
+
+---
+
+## When to create a new flow
+
+Stop what you are doing and scaffold a flow when ANY of these fire:
+
+1. **Repetition.** You type the same 3+ commands twice this session. Stop. That is a procedure. Scaffold.
+2. **Wiki prose that is really a procedure.** You read a wiki page that says "run X, then Y, then Z". That is a flow written in the wrong format. Convert it.
+3. **Re-deriving a known sequence.** You are reading a repo to figure out how to build / test / deploy it, and the answer is commands somebody already knew. That belongs in a flow.
+4. **The human says "I do this every time."** They just told you. Listen.
+
+**Mandatory action**: when one fires, immediately tell the human what you found and offer to write the flow. Do not silently write one mid-task; do not silently skip it either. The human decides, but you raise it. This is not optional — flows are how determinism is achieved across sessions.
+
+### Creation checklist
+
+1. `mycelium flow list` — check nothing already covers it
+2. `mycelium flow add <name>` — scaffold
+3. Fill the YAML with steps (see format below)
+4. Tell the human it needs `mycelium flow trust <name>` to run
+
+### YAML format
+
+Every step needs a `name` and a `run` (or `type:` for model extensions):
+
+```yaml
+name: my-thing
+description: What it does, in one line.
+
+steps:
+  - name: step-one
+    run: the command
+    timeout: 60
+```
+
+**YAML rules:**
+- **`run:` is dash/bash**, not a program. No `[[ ]]`, no arrays, no `local`, no `set -o pipefail`. For branching, use a bun script at `~/.mycelium/skills/scripts/<name>.ts`
+- **`needs` chains stdout/stderr/exit_code** from earlier steps. Cap at 64KB
+- **`depends_on: []`** for parallel steps
+- **`ephemeral: true`** keeps output out of the artifact
+- **No secrets in the file** — read from environment at runtime
+- **Verify before destroy** — a step that deletes/drops/force-pushes must be preceded by a confirmation step
+- **Runtime inputs come from the environment, not arguments.** `flow run` takes a name and nothing else. A step reads variation from env vars the human sets (`VERIFY_URLS`, `COMPOSE_ID`). If the procedure needs a *runtime argument* that changes every invocation (a URL, a file path, a user's question), a flow is the wrong shape: write a skill with a script taking `$1`, or a `type:` model extension with typed arguments.
+
+### After writing, it will not run
+
+Every flow lands **untrusted**. This is by design. `mycelium flow run` refuses until the human runs `mycelium flow trust <name>`. Tell the human. Do not route around this by running the steps manually instead.
+
+---
+
+## After a run
+
+`mycelium flow show <name>` prints the last run: per-step exit codes, durations, output. Read that instead of re-running to check what happened. A failed flow may be worth a wiki entry via `mycelium memory add`.
+
+---
+
+## MCP tools (preferred when available)
+
+`mycelium mcp` serves 4 tools over stdio JSON-RPC: `search_memory`, `list_flows`, `run_flow`, and `publish_artifact`. These are configured in `~/.claude.json` under `mcpServers.mycelium` and negotiate at session start. **If you see them in your tool list, use them** — they are safer (run_flow has a trust gate, list_flows returns structured data).
+
+**If the MCP tools are NOT in your tool list**, fall back to `run_command`:
+
+| MCP tool | `run_command` fallback |
+|---|---|
+| `run_flow` | `mycelium flow run <name>` |
+| `list_flows` | `mycelium flow list` |
+| `search_memory` | `mycelium memory search <query>` |
+| `publish_artifact` | Use `mycelium artifact add <file>` |
+
+---
+
+## Model extensions (typed steps)
+
+Model extensions replace `run:` shell commands with typed, deterministic steps. Each model declares
+its **arguments** (typed inputs), **outputs** (typed return fields), and an **execute** function.
+Outputs are always valid JSON — no parsing, no string-splitting guesswork. Steps can chain via
+`needs` because the shape is guaranteed.
+
+Use `type:` instead of `run:` when the operation has structured inputs/outputs. Keep `run:` for
+simple commands where the output is just a terminal line or you need to chain to a script.
+
+### Available models
+
+| Type | What it does | Arguments | Outputs |
+|---|---|---|---|
+| `@facile/http-check` | HTTP health check — fetch a URL and assert status | `url` (string, required), `expect` (number, default 200), `method` (GET\|HEAD), `timeout_ms` (number, default 15s) | `status`, `elapsed_ms` |
+| `@facile/gh-run-latest` | Latest CI run with its failed jobs | `repo` (string), `workflow` (string), `branch` (string) | `id`, `status`, `conclusion`, `title`, `workflow`, `url`, `failed_jobs[]` |
+| `@facile/gh-run-list` | List recent workflow runs | `limit` (number, default 5), `repo`, `workflow`, `branch`, `status` (completed\|in_progress\|queued) | `runs[{id,status,conclusion,title,workflow,url,created_at}]` |
+| `@facile/git-status` | Full git repo state — branch, dirty files, ahead/behind, tag, package.json version | `default_branch` (string) | `has_commits`, `branch`, `is_default_branch`, `default_branch`, `dirty_files`, `has_upstream`, `commits_ahead`, `commits_behind`, `newest_tag`, `newest_tag_commit`, `unreleased_commits`, `package_json_version` |
+| `@facile/changelog-check` | Whether CHANGELOG.md exists and has an [Unreleased] section | `newest_tag` (string), `unreleased_commits` (number) | `exists`, `has_unreleased_section`, `commits_since_tag`, `unreleased_section_present` |
+
+### Why typed models over `run:` shell commands
+
+| `run:` (shell) | `type:` (model) |
+|---|---|
+| Output is a raw string you must parse | Output is validated JSON with a declared schema |
+| Error means "non-zero exit", whatever that was | Error is a structured message with context |
+| `needs` passes the string; later steps re-parse it | `needs` passes JSON; later steps read typed fields |
+| No validation — wrong shape surfaces at runtime | Schema is declared upfront, validated at describe time |
+| Ad-hoc flags you must remember | Typed arguments with optional/enum/default |
+
+### Where to use each
+
+- **`@facile/git-status`** — before any flow that needs to know what branch you are on, whether the tree is clean, or whether there are unpushed commits. Use its `is_default_branch` and `dirty_files` outputs to gate destructive operations.
+- **`@facile/gh-run-list` / `@facile/gh-run-latest`** — before reviewing a PR, merging, or releasing. Get the CI state without remembering `gh` flags.
+- **`@facile/http-check`** — health checks, uptime verification, deploy validation.
+- **`@facile/changelog-check`** — before releasing. Chain after `@facile/git-status` to pass the tag and commit count.
+
+### Trust
+
+All models live in `~/.mycelium/extensions/models/facile/` as `.ts` files. Each requires
+`mycelium flow trust-model <type>` before any flow can use it — a separate gate from
+`mycelium flow trust <name>`. A flow can be trusted but its model revoked; check the run
+artifact JSON for the real error.
+
+---
+
+## Trust state (this machine, as of 2026-09-11)
+
+All 9 flows are shell `run:` steps — none depend on the bun-only typed models, so they run under the MCP `run_flow` minimal PATH without the bun-on-PATH failure (see `bugs/mycelium-mcp-path-bun`). Run `mycelium flow list` for the current trust state.

@@ -1,0 +1,166 @@
+---
+description: visualise skill
+alwaysApply: false
+---
+
+---
+name: visualise
+description: Explain a concept or make a diagram with d2 (Terrastruct). Go from a concept, system, idea, or prose spec to a clean d2 diagram rendered to SVG/PNG. Use when the user asks to visualise, diagram, map out, draw a flow, architecture, sequence, class, entity-relationship, "explain X with a diagram", or "make a picture of how this works". Also runs on "/visualise".
+triggers: ["/visualise"]
+source: "https://d2lang.com/tour + https://github.com/terrastruct/d2 (examples) + direct observation on d2 0.7.1 + common model prompt patterns for diagram generation"
+allowed-tools: Bash, Glob, Grep, Read, Edit, Write
+bash-timeout: 120000
+---
+
+# visualise — explain concepts and draw diagrams with d2
+
+Turn prose or a muddle into a crisp diagram. `d2` is code-with-hair — you write a declarative text file, it lays out the boxes. The diagram stays in source control and regenerates; it is not a drawing you babysit.
+
+## Decide first: does a diagram actually help?
+
+Diagrams earn their keep for:
+- **Flow / process** — ordering or branching matters (request lifecycle, CI/CD, state changes).
+- **Architecture** — components, their boundaries, and who talks to whom.
+- **Relationships** — entities and how they connect (ER, dependency graphs, org charts).
+- **Sequences** — time-ordered messages between actors (APIs, protocols).
+- **Layers** — the same thing at different depths (OSI, security perimeters).
+
+Diagrams are noise for: a single linear list, a big table of facts, or anything a paragraph already says better. If the concept has no structure worth *seeing*, say so and skip — do not manufacture a diagram to look busy.
+
+## Prerequisites
+
+`d2` must be on PATH. Check `which d2`. If missing, tell the user to install (`brew install d2`). Layout engine `dagre` ships bundled; no extra install.
+
+## Design methodology
+
+1. **Extract the structure from the prompt.** Read what the user wants and pull out: the *entities* (things that have a name), the *connections* (who touches whom), the *direction* of flow, and any *labels/annotations* that carry meaning. If the user gave a wall of prose, compress it to the bones first — a diagram that reproduces every sentence is a worse paragraph.
+2. **Pick the right diagram type.** One concept, one diagram. Don't stuff a sequence into a class shape.
+   - Actors exchanging messages in time → `sequence_diagram`.
+   - Components and their API calls → plain containers + arrows.
+   - Data model → `class` or `sql_table`.
+   - Same thing at stacked depths → `layer`.
+   - "All of these belong to X" → one container around them.
+3. **Name things honestly.** Use the real names from the domain. A diagram that renames everything to `a`, `b`, `c` teaches nothing.
+4. **Write the `.d2` file.** See the cheat sheet below. Keep it minimal and readable.
+5. **Render to SVG.** `d2 file.d2 file.svg`. Default to SVG — it needs no extra tooling, opens straight in the browser, and stays crisp.
+6. **Open it in the browser immediately.** Priority order:
+   - **Local live-reload (preferred)** — `d2 --watch file.d2 file.svg` runs a local server, opens the browser, and re-renders on every save to the `.d2`. This is the best workflow: edit the source, the diagram refreshes in place. Let it keep running while you iterate.
+   - **Interactive viewer** — `d2 play file.d2` opens the diagram in the **online playground** (https://play.d2lang.com): live, editable, you can poke at nodes and tweak. Use when the user wants to explore in the browser directly.
+   - **Static render** — `open file.svg` (macOS) opens the rendered SVG in the default browser. Use only when the diagram is final and a one-shot view is enough.
+   Don't ask which to launch — default to `--watch`; fall back to `play`/`open` only when watch isn't suitable.
+7. **Iterate.** With `--watch` running, edit the `.d2` and the browser updates live. `d2 fmt file.d2` keeps source tidy. Ask the user where it's unclear and tighten, then confirm the browser refreshed.
+
+## Where to put files
+
+- Standalone concept explanation → `~/diagrams/<slug>.d2` (or wherever the user works).
+- In a repo → `docs/` or `assets/`, keep the `.d2` committed as source, check in the rendered `.svg/.png` too.
+
+## d2 cheat sheet (verified on 0.7.1)
+
+```d2
+# direction of flow (default: down)
+direction: right
+
+# --- shapes & connections ---
+a -> b: request          # arrow + edge label
+a -> b: "multi word label"
+c -- d                   # undirected (no arrow)
+e -> f "label"           # label below the edge
+
+# --- containers ---
+api_server {
+  endpoint: GET /users
+  auth: bearer
+  auth -> endpoint: check
+}
+
+# --- class / data model ---
+class User {
+  name: string
+  age: int
+  +isAdmin: bool          # + = public member
+}
+
+# --- SQL table ---
+# 0.7.1 bug: `sql_table orders { ... {constraint: ...} }` fails to compile.
+# Use the explicit shape form to get constraint badges (PK/FK/UNQ).
+orders: {
+  shape: sql_table
+  id: int {constraint: primary_key}
+  customer_id: int {constraint: foreign_key}
+  total: float
+}
+
+# --- sequence diagram ---
+sequence_diagram {
+  Client -> Server: POST /login
+  Server -> DB: SELECT
+  DB -> Server: rows
+  Server -> Client: 200 OK
+}
+
+# --- layers (same thing, stacked) ---
+layer OSI {
+  application: HTTP
+  transport: TCP
+}
+layer lower {
+  physical: ethernet
+}
+
+# --- grid for a tidy matrix ---
+grid rows: 2
+
+# --- side/connected labels & styling ---
+x: main idea
+note: near: x { label: "explain this bit" }
+x.blue: color-3              # theme color
+styley: {
+  style: {
+    stroke: "#ff0000"
+    fill: "#ffeeee"
+  }
+}
+```
+
+### Quick reference
+- **Diagrams**: `d2 file.d2 out.svg` (default. Works out of the box). `out.png|pdf|pptx|gif` **require Chromium/Playwright** — `d2` auto-installs it, but if that fails (e.g. offline) the export errors `got non 200`; fall back to SVG. `-` for stdin/stdout.
+- **Themes**: `d2 -t 0 file.d2 out.svg` (0–7 defaults; `d2 --help` / `d2themes` to browse).
+- **Dark mode**: `--dark-theme N` alongside `-t` for themes that support it.
+- **Format**: `d2 fmt file.d2` normalises indentation/labels.
+- **Validate**: `d2 validate file.d2` (also run `d2 file.d2 out.svg` — compile errors are loud).
+- **Preview / interactive**: `d2 --watch file.d2 file.svg` (preferred) → local server, live reload on save, browser auto-opens. `d2 play file.d2` → online playground (https://play.d2lang.com), live and editable. `d2 play --sketch file.d2` for a hand-drawn look.
+- **Icons**: `icon: https://icons.d2lang.com/...` on a shape (see `https://icons.d2lang.com` for the catalog).
+- **Anything invalid → the compiler errors loudly.** Trust the error, fix the line, re-render.
+
+## Prompting for a good diagram (what to extract from the user, and how to ask)
+
+If the user's request is vague, the diagram will be vague. Grill the prose:
+
+- **What is the thing you're visualising?** One concept = one diagram. "Explain the system" → ask *which* slice: flow, architecture, data, or sequence?
+- **Who are the actors / entities?** A diagram needs named things. If none are named, ask for the cast.
+- **What's the direction of the story?** Left-to-right, top-to-bottom, request/response, cause→effect?
+- **What's the one thing you want a reader to walk away with?** Put that element at the visual center; support it with the rest.
+
+Common prompt shapes that produce good d2:
+
+> "Explain how **X** works end-to-end, as a flow diagram: the starting event, the steps in order, and what happens at each branch."
+
+> "Draw the **architecture** of **project Y**: the components, the boundary between frontend and backend, and the arrows for each API call."
+
+> "Model the **data** behind **Z**: entities, their key fields, and the relationships between them (one-to-many, many-to-many)."
+
+> "Show the **sequence** when a user **does Q**: the messages between the client, server, and database in time order."
+
+Turn the answers into d2, then **show the rendered diagram and ask** "is this the shape you meant?" — the first render is a draft, not a deliverable.
+
+## Rules
+
+- Only render diagrams that match the user's actual system. Don't invent components, endpoints, or tables that weren't implied. If you must infer, say so.
+- One idea per diagram. Several small diagrams beat one 40-node monster.
+- Use real domain names. No `a`, `b`, `c` placeholders unless the user literally asked for abstract.
+- Keep the `.d2` source clean and committed — it is the source of truth, the SVG/PNG is the artifact.
+- Verify the output exists and is non-trivial in size before presenting it.
+- Regenerate rather than hand-edit the SVG. Fix the `.d2`, re-run d2.
+- No secrets, tokens, or private hostnames as labels in the rendered image.
+- If the request genuinely doesn't warrant a diagram, say so and offer the text answer instead.

@@ -1,0 +1,41 @@
+---
+description: 40-artifacts
+alwaysApply: true
+---
+
+## Artifacts
+
+An artifact is a self-contained markdown document recorded with `mycelium artifact add <file>` (or `--body-stdin`), or via the `publish_artifact` MCP tool. It lands in `~/.mycelium/artifacts/` and syncs across machines.
+
+When a Mycelium server URL is configured, artifacts are hosted at `https://<server>/artifacts/<id>`. `mycelium artifact open <id>` opens that URL in the browser. Hand the reader the canonical web URL.
+
+The wiki holds the **fact**, as text, forever. An artifact holds the **rendered presentation** or structural overview, and expires in thirty days by default (or `--expires never`). A finding filed only as an artifact is invisible to search: `mycelium memory search` indexes `memory/` and not artifacts.
+
+### The artifact gate
+
+Record one when ALL three hold:
+
+1. **The answer is structural, not linear.** A comparison across many items, a timeline, a graph, an extensive overview, or a table wider than a terminal. Prose and a terminal table cover everything else.
+2. **It will be read more than once**, or by somebody who is not in this session.
+3. **It is derived from something durable** that already exists or is being written.
+
+If any answer is no, answer in the conversation and stop.
+
+### Rules
+
+- **Never instead of answering.** The terminal answer comes first, always. An artifact is an attachment to an answer, never the answer itself.
+- **Never for a raw finding.** File durable facts with `mycelium memory add`. The artifact illustrates or synthesizes findings; it does not replace them.
+- **Never unprompted for something that fits on a screen.** Generating a page for a two-line answer is noise.
+- **Never use harness-specific artifacts.** Do not write to harness artifact directories unless explicitly requested. Always record through `publish_artifact` or `mycelium artifact add`.
+
+### Web sources
+
+Whenever an answer, report, or artifact draws on web sources, ALWAYS mention them, with their full URL:
+
+- Every web page consulted appears in the output with its full, visible URL — write the bare address (e.g. `https://example.com/page`), optionally preceded by the title, never only `[title](url)` with the URL hidden behind anchor text.
+- This applies everywhere: conversation answers, wiki pages, artifacts, and research reports. A sources section with bare URLs is the minimum; inline citations at the point of the claim carry the full URL too.
+- Include failed fetches and dead ends with their URLs, flagged as unverifiable, rather than silently dropping them.
+
+### Writing
+
+Write in markdown only. The document's title becomes the artifact's name, so recording the same title replaces it rather than piling up duplicates.

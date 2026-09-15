@@ -5,12 +5,6 @@ import (
 )
 
 // searchTool declares the web search.
-//
-// ReadOnlyHint puts it in the client's read-only group, which a user approves
-// once in bulk instead of confirming on every call. OpenWorldHint is true:
-// unlike a memory search that reaches one configured host, sonar queries the
-// open internet through several engines, so an agent should be told the world
-// it touches is the public web.
 func searchTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:  "search",
@@ -21,6 +15,23 @@ func searchTool() *mcp.Tool {
 			"carries a title, URL, snippet and the engine that found it; results from scrape " +
 			"fallbacks (bing, ddg) rank below keyed-API and SearXNG results, so trust the ordering " +
 			"over any single position. Repeating the same query is served from cache.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint:    true,
+			DestructiveHint: new(false),
+			IdempotentHint:  true,
+			OpenWorldHint:   new(true),
+		},
+	}
+}
+
+// fetchTool declares the webpage fetch tool.
+func fetchTool() *mcp.Tool {
+	return &mcp.Tool{
+		Name:  "fetch",
+		Title: "Fetch webpage content",
+		Description: "Fetch a webpage URL and extract its main content as clean Markdown using a stealth headless browser. " +
+			"Renders client-side JavaScript, handles dynamic single-page applications, and strips noise (scripts, styles, ads). " +
+			"Returns the page title, canonical URL, and markdown text.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint:    true,
 			DestructiveHint: new(false),

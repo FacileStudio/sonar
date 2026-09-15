@@ -1,0 +1,63 @@
+---
+description: muse skill
+alwaysApply: false
+---
+
+---
+name: muse
+description: Default frontend generator for Facile tools (Sablier, Nuage, Casier, Plume, and siblings). Use for any component, page, layout, style, or animation work in a Facile project — it supplies the graphical chart, design tokens, and the shared Svelte component library. Svelte 5 + SvelteKit only; never emit React, Next, Vue, or Solid unless the user explicitly asks for it this session. Also runs on "/muse".
+triggers: ["/muse"]
+source: ""
+---
+
+# muse — Facile UI component library
+
+Package: `@facile/muse` · Repo: `https://github.com/FacileStudio/muse`
+
+Graphical chart, on this machine:
+
+- Claude Code: `~/.claude/skills/muse/CHARTE.md`
+- Codex: `~/.codex/muse/CHARTE.md`
+
+## When to apply
+
+Apply automatically to frontend work in a Facile tool: component, page, layout, style, animation.
+
+Do not apply to backend, infra, scripts, or non-UI work. Do not apply if the user asked for React, Next, Vue, Solid, or plain HTML.
+
+Opt-out phrases — "no muse", "skip lib", "raw svelte" — make this skill dormant for the rest of the session.
+
+## Rules
+
+- **Read `CHARTE.md` first.** It is the visual contract: colors, type, spacing, motion, accessibility. It is large; read the sections relevant to what you are building rather than the whole file.
+- **Reuse before you build.** Resolve the available components from `node_modules/@facile/muse` in the current project — read its `package.json` exports map, then the built `dist/` entry it points at. `src/lib/index.ts` exists only in a repo checkout, not in the installed package. If `@facile/muse` is not installed, ask before hand-rolling a component that probably already exists upstream.
+- Svelte 5 + SvelteKit, TypeScript on. Runes API: `$state`, `$props`, `$derived`, `$effect`. No `export let`, no legacy stores where a rune fits.
+- Style with Tailwind v4 token utilities — `bg-fc-bg`, `text-fc-fg`, `border-fc-border`, `rounded-fc-pill`. Token source is `src/lib/styles/tokens.css` in a muse checkout.
+- Never hardcode a hex value. Use a token, or ask before adding a new one.
+- GSAP for animation, and always honor `prefers-reduced-motion`.
+- Mobile-first: 360px minimum width, hit targets at least 44px, `100dvh` rather than `100vh`.
+
+## Consuming from a Facile tool
+
+```bash
+bun add github:FacileStudio/muse
+```
+
+```svelte
+<script lang="ts">
+  import { ComponentName } from '@facile/muse';
+</script>
+```
+
+Import `@facile/muse/styles` once in the root layout. The consuming app needs `@tailwindcss/vite` (or the PostCSS plugin) configured.
+
+Two adoption traps, both proven on Vision, Mycelium and Antenne:
+
+- Tailwind v4 does not scan dependencies, so the app needs `@source` pointed at muse inside `node_modules` or its utilities silently never generate. The failure shows up only in the built CSS — no gate catches it.
+- `vite dev` dies unless `optimizeDeps.exclude: ['@facile/muse']` is set.
+
+## Adding to the library
+
+1. Add the component under `src/lib/components/` in a checkout of `FacileStudio/muse`.
+2. Re-export it from `src/lib/index.ts`.
+3. Commit and push, then bump the dependency in the consuming tool.

@@ -1,0 +1,51 @@
+---
+description: youtube skill
+alwaysApply: false
+---
+
+---
+name: youtube
+description: Fetch YouTube video transcripts into context via tube (yt-dlp with fallback providers). Use when the user shares a YouTube link and wants a summary, or asks for a transcript, subtitles, or the content of a video.
+triggers: ["/youtube"]
+source: ""
+---
+
+# YouTube transcripts
+
+`tube` fetches a YouTube transcript as plain text. It tries yt-dlp first
+(cookies + SOCKS tunnel through lucy when available), then falls back to
+third-party transcript providers (kome, supadata, ytt) so datacenter-IP
+blocks never stop a fetch.
+
+## Usage
+
+```sh
+tube <url|video-id>          # transcript text on stdout
+tube -t <url>                # keep [MM:SS] timestamps (yt-dlp provider only)
+tube -o /tmp/tr.txt <url>    # write to file; read in chunks for long videos
+tube -j <url>                # JSON: {video_id, title, provider, text}
+```
+
+Live on ruche at `~/scripts/tube`; same path on other machines if synced.
+On machines without it, `yt-dlp --cookies-from-browser firefox` is the
+manual equivalent.
+
+## How to use
+
+Run it, read the stdout, summarize or answer from it. For long videos use
+`-o` and read the file in chunks. The provider that succeeded is printed to
+stderr (`tube: success via: ...`).
+
+## Gotchas
+
+- Timestamps only from the yt-dlp provider; fallback providers return plain
+  text without them. Fine for summarization; ask before relying on cues.
+- A dead proxy just falls through to the next provider; nothing to fix by
+  hand. Don't hammer a failing provider — read the stderr order and tell
+  the user which providers failed.
+- Cookies live at `~/.config/tube/cookies.txt` (chmod 600). Never print or
+  cat that file; it is a live session credential.
+- Videos with genuinely no captions: every provider fails. Say so instead
+  of retrying; audio transcription is out of scope.
+- Supadata provider stays dormant without `TUBE_SUPADATA_KEY`; custom
+  providers can be dropped in `~/.config/tube/providers.d/` (chmod 700).

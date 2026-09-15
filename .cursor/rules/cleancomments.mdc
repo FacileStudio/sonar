@@ -1,0 +1,100 @@
+---
+description: cleancomments skill
+alwaysApply: false
+---
+
+---
+name: cleancomments
+description: Strip every inline and in-body comment from source files, then add one documentation block above each public function in the language's native format (JSDoc, rustdoc, docstrings, godoc). Use when the user asks to clean up comments, remove noisy comments, de-comment a file or project, or add missing function documentation. Also runs on "/cleancomments".
+triggers: ["/cleancomments"]
+source: ""
+allowed-tools: Glob, Grep, Read, Edit
+---
+
+# cleancomments
+
+Remove comment noise; keep documentation. Two operations, always both.
+
+## 1. Remove
+
+Delete every comment inside function and method bodies: line comments, block comments, trailing explanations on variable declarations and control flow.
+
+Keep:
+
+- license headers and copyright notices at the top of a file
+- `TODO`, `FIXME`, `HACK` markers
+- directives that the toolchain reads: `// @ts-expect-error`, `#![allow(...)]`, `// eslint-disable-*`, `// nolint`, `# type: ignore`, `//go:embed`, and similar. These are code, not commentary.
+
+## 2. Document
+
+Add one doc block above each exported or public function, describing what it does, its parameters, and what it returns. Derive the description from the code, not from the comment you just deleted. Do not restate the signature in prose.
+
+| Language | Format |
+|---|---|
+| JS / TS | JSDoc `/** */` with `@param`, `@returns` |
+| Rust | `///` rustdoc, with `# Arguments` / `# Returns` when non-obvious |
+| Python | docstring `"""` |
+| Go | godoc `//`, starting with the identifier name |
+| Java / C# | JavaDoc / XML doc |
+| C / C++ | Doxygen |
+| PHP | PHPDoc |
+
+## Rules
+
+- Never change behavior. Comment removal must not alter a single token of code.
+- Preserve existing indentation and blank-line structure.
+- Private helpers do not need doc blocks unless the logic is non-obvious.
+- Skip generated files, vendored directories, and `node_modules`.
+- Run a build or typecheck afterward if one is available. Removing a directive comment by mistake breaks compilation, and that is the only failure mode worth checking for.
+
+## Checking the result
+
+`filet` enforces the same convention, so it is the fastest way to see whether a pass is complete:
+
+| filet rule | What it means here |
+|---|---|
+| `go.comment.inbody`, `gen.comment.inline` | operation 1 is not finished; directives are already exempt, so anything left is real commentary |
+| `gen.commented.code` | commented-out code the pass should have deleted |
+| `go.doc.missing` | operation 2 is not finished. A group holding only directives does not count as documentation |
+| `go.doc.form` | the Go doc block does not open with the identifier name |
+
+```sh
+filet check <path> | grep -E 'comment|doc\.'
+```
+
+`gen.todo` is the one place the two disagree on purpose. filet reports leftover `TODO`/`FIXME`/`HACK`
+markers because they are tracked debt; this skill keeps them because a cleaning pass must not destroy
+information. Never delete a marker to make filet quiet — resolve it, or leave the finding standing.
+
+## Example
+
+Before:
+
+```javascript
+// This function calculates something
+function calculateTotal(items) {
+    // Loop through all items
+    let total = 0;
+    for (let item of items) { // Add each item price
+        total += item.price; // Running total
+    }
+    return total; // Return the final sum
+}
+```
+
+After:
+
+```javascript
+/**
+ * Sums the price of every item in the collection.
+ * @param {Array<{price: number}>} items
+ * @returns {number} Total price.
+ */
+function calculateTotal(items) {
+    let total = 0;
+    for (let item of items) {
+        total += item.price;
+    }
+    return total;
+}
+```

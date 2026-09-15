@@ -1,0 +1,142 @@
+---
+description: filet skill
+alwaysApply: false
+---
+
+---
+name: filet
+description: Run the filet code-quality checker on a project and fix what it finds — style, architecture, cognitive complexity, Dockerfiles, and the multi-language test runner. Use when the user asks to check code quality, roast the code, lint the project, auto-fix the mechanical issues with clean, review a Dockerfile, enforce the team guidelines, run the test suites, or set up filet in a repo. Also runs on "/filet".
+triggers: ["/filet"]
+source: ""
+allowed-tools: Bash, Glob, Grep, Read, Edit, Write
+---
+
+# filet
+
+`filet` is a single Go binary: a style checker, a code roaster, a Dockerfile roaster and a test
+runner. It is deterministic and offline — no model call is involved in producing a finding. Your job
+is to run it, judge the findings, and fix the ones worth fixing.
+
+## Commands
+
+```sh
+filet check  [path]   # findings only
+filet roast  [path]   # findings plus commentary and an A-F grade
+filet clean  [path]   # apply the auto-fixable checks in place (-dry-run to preview)
+filet docker [path]   # every Dockerfile found
+filet test   [path]   # detect and run the project's test suites
+filet init   [path]   # write a commented filet.yml (-preset relaxed|epitech|default)
+filet rules           # every rule id and what it means
+filet version         # print the version
+```
+
+Flags on `check`/`roast`/`docker`: `-format auto|text|lipgloss|line|json|sarif|github`,
+`-fail info|warn|error|never`, `-quiet`. Positional path first, then flags:
+`filet check internal -format json`.
+
+`-format auto` (the default) emits the grouped human report on a terminal and the one-per-line
+format everywhere else — which means **your** tool calls already get the parseable form.
+
+Exit codes: `0` clean, `1` findings at or above `failOn`, `2` bad usage or unreadable input.
+
+If the binary is missing, build it from `~/Code/Facile/filet` with `mise run build` (writes
+`bin/filet`), or install it into GOBIN with `mise run install`. Never reimplement a check by hand
+when the binary can answer.
+
+## Cleaning
+
+`filet clean [path]` is the write-mode sibling of `check`: it rewrites files in place, applying
+only the mechanical, line-level fixes the project's own config asks for. Everything a clean run
+does is gated on the same toggle that gates its check:
+
+- `gen.trailing.space` (style.banTrailingSpace) — trims trailing whitespace.
+- `gen.comment.inline` (style.banInlineComments) — strips a `//` comment **after** real code.
+- `gen.commented.code` — drops a whole line of commented-out code.
+
+It is deliberately conservative: standalone prose comments and file headers survive (the inline
+rule only fires on a comment following code, and only commented-out code is ever deleted whole),
+and tool directives (`//nolint:`, `//go:`) are never touched. String literals and URLs are left
+intact, only changed files are rewritten (trailing newline and file mode preserved), and a second
+run is a no-op. Pass `-dry-run` to see exactly what would change before writing anything.
+
+`clean` does NOT touch standalone comments inside function bodies — the case that needs judgement.
+That stays a `check` + human-review (or `/cleancomments`) job.
+
+## Workflow
+
+1. **Locate the config.** `filet` walks up for `filet.yml` and stops at the repository root, so a
+   config outside the repo is deliberately ignored. If none exists and the user wants one,
+   `filet init` and explain the presets rather than inventing thresholds.
+2. **Pick the format for the job.** `-format json` when you need to group and count. `-format line`
+   for `path:line:column: severity: message [rule]`, which pipes straight into `grep`, `cut` and
+   `sort`. `-format text` or `roast` when the user is going to read it themselves — and pass it
+   explicitly, since a tool call is not a terminal and would otherwise get `line`.
+3. **Triage before editing.** Group by rule id, then by file. Report the shape of the problem
+   ("14 findings, 9 of them one dispatcher") before touching anything.
+4. **Fix causes, not symptoms.**
+5. **Re-run** and report the delta honestly, including what you left.
+
+## The rule that matters most
+
+**Never silence a finding to make the output green.** Raising a limit in `filet.yml`, adding a rule
+to `disabled:`, or dropping to a looser preset are all last resorts, allowed only when the user asks
+or when the finding is genuinely wrong for the project. The default move is to fix the code.
+
+If a threshold really does not fit the project, change it once, in one place, with a comment saying
+why — and tell the user you did it. Silently eroding eight thresholds until the tool goes quiet is
+the failure mode this tool exists to prevent.
+
+## Reading the findings
+
+Severities: `error` fails the build by default, `warn` and `info` do not. `-fail warn` tightens the
+gate for CI.
+
+`complexity` is **cognitive** complexity, not cyclomatic: a `switch` costs one point total rather
+than one per `case`, and nesting is penalised — an `if` three levels deep costs 4. So a high score
+means depth, not breadth. Fix it by extracting the nested block or inverting a guard, not by
+collapsing a dispatcher into `if/else`.
+
+Common fixes, in order of how often they are right:
+
+| Rule | Usual fix |
+|---|---|
+| `go.func.complexity` | extract the deepest block into a named function; invert conditions into early returns |
+| `go.func.long` / `go.func.statements` | split by responsibility, not by line count |
+| `gen.nesting` | early return, or lift the inner loop out |
+| `go.file.funcs` / `gen.file.long` | move a cohesive group of functions to a sibling file |
+| `go.doc.missing` | write what it does, not what its signature already says |
+| `go.err.discarded` | handle it, or explain in one line why discarding is correct |
+| `go.global.mutable` | make it a constructor's field; if it is a read-only lookup table it is already exempt |
+| `arch.import.forbidden` | this is an architecture violation, not a style nit — never disable it |
+| `arch.file.missing` | a directory breaks the layout contract the project declared in `requiredFiles`; add the file or add an exact-pattern exception |
+
+`funcLines` excludes blank and comment-only lines, so documenting a function cannot push it over.
+
+## Dockerfiles
+
+`filet docker` finds unpinned `FROM`, root users, apt hygiene, `COPY . .` before the
+dependency install, shell-form `CMD`, secrets in `ENV`/`ARG`, missing `.dockerignore`, missing
+`HEALTHCHECK`, and single-stage builds on a toolchain image.
+
+`docker.secret` and `docker.curl.pipe` are security findings. Surface them first and never bundle
+them into a list of style nits.
+
+## Tests
+
+`filet test` detects the project (go, cargo, bun, pnpm, yarn, npm, deno, pytest), runs every suite it
+finds, and prints pass/fail plus duration per suite. Extra arguments pass through:
+
+```sh
+filet test -- -run TestParse -v
+```
+
+Prefer it over guessing the project's test command. If it detects nothing, say so instead of
+inventing one.
+
+## Reporting back
+
+Lead with the counts and the grade if you ran `roast`. Then the findings that need a decision from
+the user, then what you fixed. Quote the rule id so the user can look it up with `filet rules`.
+
+Do not paste the raw output wholesale when it is long — summarise, and keep the full list for the
+findings you are acting on.

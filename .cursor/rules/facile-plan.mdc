@@ -1,0 +1,92 @@
+---
+description: facile-plan skill
+alwaysApply: false
+---
+
+---
+name: facile-plan
+description: Produce a convention-shaped implementation plan for a change in a Facile suite repo. Use when the user wants to plan, spec, or break into steps a feature/fix/refactor in any suite repo under ~/Projects/Facile/Code/ — the plan names exact files and flags which suite conventions (migrations, porte/auth, muse, module path, filet) apply. Not for Grimoire or client vitrines (use the generic planner approach). Also runs on /facile-plan.
+triggers: ["/facile-plan"]
+source: "own work root + ~/Code/Facile/Wiki/ROADMAP.md (planning vocabulary) + ~/mycelium/memory conventions + ~/Projects/Facile/Code/CLAUDE.md"
+allowed-tools: Bash, Glob, Grep, Read, Edit, Write
+---
+
+# facile-plan — Facile suite implementation plan
+
+You produce a plan, not code. You must NOT make changes — only read, analyze, and plan. The plan is written so a future session (or a worker agent) can execute it with no prior conversation.
+
+## Scope guard (first)
+
+Suite repo = under `~/Projects/Facile/Code/`, or module path / remote matches `github.com/FacileStudio/`. If NOT: say "not a suite repo" and use the generic planner approach (the `planner` agent: Goal / Plan / Files / Risks). **Grimoire is NOT suite** — it gets the generic plan.
+
+## Step 1 — read the repo (2-3 min)
+
+Before planning, know the shape:
+- Stack: Go family (`apps/api` + `apps/client`, no `packages/`, module `github.com/FacileStudio/<repo>/apps/api`) vs TS family (Turborepo `apps/*` + `packages/*`, bun, Hono + tRPC 11, SvelteKit 5, Prisma).
+- Where the change lands: which `apps/`, which `modules/` or `internal/` package, which schema/migration.
+- Existing patterns the change should reuse — search before prescribing new code (the AGENTS ladder: does a blessed lib already do this?).
+
+## Step 2 — load suite conventions (link, don't re-derive)
+
+Consult, then apply:
+- `~/Code/Facile/Wiki/HARMONIZATION.md` (audit) + `~/Code/Facile/Wiki/ROADMAP.md` (order, exit criteria, dependencies)
+- `~/Projects/Facile/Code/CLAUDE.md` (catalog, gotchas, auth)
+- Wiki conventions as relevant: `~/.mycelium/memory/conventions/{facile-go-migrations, facile-backend-exposure, facile-suite-auth, project-architecture, facile-docs-standard}.md`
+
+List which conventions you checked in the plan ("Checked against: migrations, auth/porte, muse") so the reader sees the plan is founded, not vibes.
+
+## Step 3 — build the plan
+
+Follow the suite planning vocabulary from ROADMAP: **separate the why from the order**, give every work item an **exit criterion**, allow **parallel tracks** where nothing depends, and make it a **cold-start handoff** (a fresh reader needs no prior conversation).
+
+### Output template — ALWAYS use this structure
+
+```
+## Goal
+One sentence: what the change does.
+
+## Why (evidence) — one line
+The observed problem / requirement this addresses. Cite a file or behavior, not an opinion.
+
+## Approach
+Single paragraph: the shape of the solution, and which existing pattern/blessed lib it reuses.
+
+## Steps (ordered)
+Numbered, each the smallest unit a worker can do in one session, with the EXACT file:
+1. `apps/api/modules/x/router.go` — add route + wire handler [auth/porte: X-Facile-CSRF on mutation]
+2. `apps/api/migrations/00002_*.sql` — add column [migrations: goose -s create, own package]
+3. ...
+
+## Files to Modify / New
+- `apps/api/...` — what changes
+- `apps/api/migrations/00002_*.sql` — new
+
+## Exit criteria
+What "done" verifiably looks like: builds, `filet check` clean, tests pass, specific behavior.
+
+## Risks / unknown unknowns
+What might bite: a convention that could change, a data migration, a deploy dependency, a cross-repo dep.
+
+## Skip (YAGNI)
+Explicitly what is NOT in scope and why — so a worker doesn't gold-plate.
+```
+
+## Convention flags to apply inline
+
+Mark each step with the convention it must respect:
+
+- `[migrations]` — goose `-s` sequential file in `apps/api/migrations/`, own package, `//go:embed *.sql`; never hand-create `goose_db_version`; a failed migration must exit 1 (`run() int`).
+- `[auth/porte]` — porte floor: cookie read before Authorization, `X-Facile-CSRF` on cookie mutations, `email_verified:false` Authentik trap, verify-cost = refusal-cost. TS apps: `@repo/auth` custom JWT/argon2 unless on porte.
+- `[muse]` — UI work: muse tokens not hex, Svelte 5 runes, no legacy stores, GSAP + reduced-motion, mobile-first.
+- `[module-path]` — Go module stays `github.com/FacileStudio/<repo>/apps/api`; never fork-inherit bare `module api`.
+- `[filet]` — gate runs clean; don't raise thresholds. Plan the code so it passes, not the config.
+- `[events]` — anything emitting/consuming events uses the `@facile/events` envelope, keyed on `actor_email`.
+- `[distribute]` — cross-repo deps via `github:FacileStudio/<repo>#<branch>`; no new registry.
+
+## Pause for review
+
+End by asking the user to confirm or adjust the plan before anything executes. Do NOT hand a 20-step plan straight to a worker — a 60-second checkpoint here catches a wrong direction cheaply.
+
+## Tools
+- `gh` / `git`/`rg`/`find` for recon (read-only).
+- `filet` only to *check* current state, not to plan around it.

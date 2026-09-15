@@ -1,0 +1,45 @@
+---
+description: tiroir skill
+alwaysApply: false
+---
+
+---
+name: tiroir
+description: >
+  Manage environment variables and secrets with tiroir, the encrypted local env
+  store (successor to skatos). Use when the user asks to set, get, list, delete,
+  or export environment variables or secrets, or mentions tiroir, skatos, env
+  vars, tokens, or wants env loaded into their shell.
+triggers: ["/tiroir"]
+source: ""
+---
+
+# tiroir: encrypted env store
+
+Binary: `tiroir`
+Store: `~/.tiroir` (AES-256-GCM ciphertext, 0600) + `~/.tiroir.key` (random 32-byte key, 0600), per invoking user.
+Successor to skatos. There is no `run` or `sync` subcommand — env is applied by sourcing `export` into a shell.
+
+## When to apply
+
+Use when the user mentions set/get/list/export of environment variables, API keys, tokens, secrets, or "env vars".
+Triggers: "secret", "env var", "token", "API key", "OPENROUTER_API_KEY", "get my token", "tiroir", "skatos".
+
+## Commands
+
+`tiroir set <key> <value>`   Store a value (encrypted at rest)
+`tiroir get <key>`           Read one value
+`tiroir list`                List all keys (no values shown)
+`tiroir delete <key>`        Remove a key
+`tiroir export`              Emit `export KEY='value'` lines for `eval "$(tiroir export)"`
+
+## Rules
+- Load into the current shell with `eval "$(tiroir export)"` — no `run` prefix command exists.
+- Values are encrypted at rest but readable by anything that runs the binary; treat like plaintext in chat.
+- `get` and `list -v` reveal plaintext; mask values unless the user explicitly asked for them.
+- New installs go to boite VMs and standalone use; prefer tiroir over skatos everywhere.
+- Run `tiroir --help` for exact syntax when unsure.
+
+## Related
+- `~/.mycelium/memory/tools/tiroir.md` for store model, crypto details, version, and gotchas.
+- casier is the system-wide secrets manager (secret service / server-backed); tiroir is local file-based env.

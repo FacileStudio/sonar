@@ -1,0 +1,54 @@
+---
+description: ardoise skill
+alwaysApply: false
+---
+
+---
+name: ardoise
+description: >
+  Facile PDF generator for French freelance paperwork. Use when the user asks to
+  generate an invoice, quote, or contract PDF from a YAML job file, or mentions
+  ardoise-cli. NOT the Ardoise invoicing app.
+triggers: ["/ardoise"]
+source: ""
+---
+
+# ardoise — freelance paperwork PDF generator
+
+Binary: `ardoise` (needs the `typst` CLI on PATH)
+Config: none — a YAML job file in, PDFs out
+
+Reads one YAML job file of provider, client, and document data, compiles Typst
+templates into PDFs (service invoice, maintenance quote, and the matching
+contracts), and emits only the document types present in the file.
+
+**This has nothing to do with the `Ardoise` invoicing product.** Same word,
+different project: `Ardoise` is a deployed invoicing app with Stripe and a
+database; `ardoise-cli` is a standalone Bun binary that stores nothing. Do not
+wire them together on the strength of the name.
+
+## When to apply
+
+Use when the user asks to generate a French freelance invoice, quote, or
+contract PDF from a YAML file.
+Triggers: "invoice", "invoice pdf", "quote", "devis", "contract", "ardoise",
+"job.yml", "papier", "facture"
+
+## Commands
+
+```
+ardoise                          Read ./job.yml, write PDFs next to it
+ardoise -f clients/spacex.yml    A different job file
+ardoise -f spacex.yml -o out/    Write the PDFs into out/
+```
+
+One run produces one PDF per document block found in the YAML.
+
+## Rules
+- YAML in, PDFs out — the CLI never writes anything besides the PDFs (and the
+  removed intermediate `.typ` files). It stores no state.
+- Requires the `typst` binary on PATH; it shells out to it.
+- Output is named from the client name, or from an explicit `output_name` in
+  the YAML.
+- Do not conflate this tool with the `Ardoise` invoicing product — no shared
+  code, data, or config.

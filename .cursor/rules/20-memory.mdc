@@ -1,0 +1,144 @@
+---
+description: 20-memory
+alwaysApply: true
+---
+
+## Wiki
+
+Persistent agent memory lives in `~/.mycelium/memory/` and syncs across every machine and agent via the `mycelium` CLI. Treat it as the canonical wiki root regardless of `pwd`. Put durable facts in the wiki, not in rules. Query and write silently; the wiki is infrastructure, not conversation.
+
+### Gates
+
+Two actions are mandatory by default, not optional extras:
+
+- **Start gate.** Before your first real tool call on a non-trivial task, read `overview.md`, then search. Skipping this because the task "looks small" is the single most common failure. Default to running it; justify not running it, never the reverse.
+- **End gate.** A task is not done until the wiki reflects what you learned. Before ending any task that produced something durable, write it back through the Storage gate.
+
+**Non-trivial** = anything past a one-line mechanical edit or conversational reply. Touching code, config, infra, deploys, and answering "how/why/where does X work" all count. Unsure? Assume non-trivial and run the start gate.
+
+A background daemon syncs every 60s. If syncing is failing, do not skip the rest of the loop: memory is local-first. A failed sync never excuses a skipped start gate or end gate.
+
+### Operating loop
+
+On any non-trivial task:
+
+1. Read `~/.mycelium/memory/overview.md`
+2. Search before rediscovering: `mycelium memory search "<keywords>"`, skim `index.md`
+3. Open only the 1-3 most relevant pages
+4. Do the work
+5. If the result is durable and non-obvious, write it back with `mycelium memory add`
+6. If new evidence contradicts a page, lint it
+
+### Invariants
+
+- `~/.mycelium/memory/` is the only place for persistent memory. Raw sources stay outside it and are treated as immutable source material.
+- `overview.md` = core memory: always-read, short, cross-cutting.
+- `index.md` = router, one line per page, not a dump.
+- `log.md` = append-only; never edit or delete past entries.
+- Every non-obvious claim needs provenance: a URL, file path, or `direct observation`.
+- On reversal, mark the old claim `[SUPERSEDED by: source, date]` and log it.
+
+### Layout
+
+```text
+~/.mycelium/memory/
+├── overview.md   always-read summary (core memory)
+├── index.md      one-line-per-page router
+├── log.md        append-only history
+└── bugs/ tools/ projects/ conventions/ standards/ syntheses/ actors/
+```
+
+Prefer updating an existing page over creating one. Create a new page only when the topic is likely to recur or has enough material to stand alone.
+
+### English-only
+
+Wiki pages and queries are English. The embedding model (`all-minilm`) is English-only, so neither half of hybrid search crosses the language boundary. The corpus was converted on 2026-08-19; if you find a French page, it is new drift. Rewrite it in English as part of whatever edit brought you there.
+
+- Search in English: `mycelium memory search "postgres backups on the server"`, never `"sauvegardes postgres ruche"`.
+- Keep French where French is the subject: client-facing content, French administrative or legal matter, filed document names, quoted text, and identifiers that are French words (`porte`, `caisse`, `enveloppe`).
+- Never translate commands, file paths, error strings, code, or log lines.
+
+Enforced mechanically: `mycelium doctor` reports a `wiki language` check. `log.md` is exempt. A line carrying `<!-- lang:fr -->` is exempt for verbatim quotations and French legal strings only.
+
+### Storage gate
+
+Write only when ALL hold:
+
+1. The fact will change how a future agent acts.
+2. It is non-obvious or annoying to rediscover.
+3. It is grounded in a source, documentation, or direct observation.
+4. It carries no secret. Credentials, tokens, API keys, passwords and private keys are refused whatever the first three say.
+
+Never store: secrets, facts obvious from current code, re-runnable command output, git history, ephemeral session state, easily-rediscovered generic docs, or anything already in the rules. Test: "Will this save real time in a future session with no memory of today?" If no, let it die with dignity.
+
+### Finding format
+
+Keep entries to 2-6 lines of substance, not a diary:
+
+```markdown
+### <short title>
+**Date**: YYYY-MM-DD
+**Source**: <URL | file path | "direct observation">
+<what was learned, why it matters, and how it should change future behavior>
+```
+
+`mycelium memory add <page> --title <t> --source <s> --body-stdin --log <what changed>` does the bookkeeping in one call. Editing an existing page and linting it stay ordinary file edits. File longer analyses to `syntheses/<name>.md`.
+
+When you re-check an existing finding and it still holds, stamp it with `<!-- confirmed: YYYY-MM-DD -->` directly under that finding's heading. Update the date on later re-checks. A new finding never carries it.
+
+### Page frontmatter
+
+Every page except `index.md` and `log.md` carries:
+
+```yaml
+---
+title: Short descriptive title
+type: bug | tool | project | convention | standard | synthesis | actor
+sources: [URLs, files, or docs consulted]
+related: [other wiki pages linked]
+confidence: high | medium | low
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+---
+```
+
+Use `confidence: high` only when verified; lower it or skip the claim if provenance is incomplete. Do not invent line numbers or sections you did not check. Link related pages with `[[page-name]]`.
+
+`type: standard` marks a normative page under `standards/`. Every other type is descriptive: a dated observation an agent filed, which you lint freely when better evidence turns up. A standard says "when a repo disagrees with this, the repo is wrong", so do not silently rewrite a normative page from one session's evidence. Propose the change to the user.
+
+A normative page is ratified per machine, and an unratified change is visible. A human runs `mycelium memory ratify <page>` to accept a standard. If the page changes afterwards, `mycelium doctor` fails and search results print `[changed since ratified]` until ratified again.
+
+- Never run `mycelium memory ratify` or `mycelium memory forget`. Ratifying is the human saying they read it.
+- A `[changed since ratified]` result is not authoritative. Read it, but do not treat it as settled. Say the page is in that state and ask.
+- If you believe a standard is wrong, say so and cite the source.
+
+Ratification never blocks anything: the page still syncs, still exists and still ranks. Only its authority is in question, never its availability.
+
+### Retrieval
+
+Budget: `overview.md` + the relevant `index.md` section + up to 3 pages. Expand with local search only if that is not enough. Do not load the whole wiki. Once the wiki passes ~100 pages or the index ~200 lines, lean on search over index-scanning.
+
+| Situation | Read |
+|---|---|
+| Fixing a bug | `bugs/` + `index.md` |
+| Using a tool for non-trivial work | `tools/<tool>.md` |
+| Starting in an unfamiliar repo area | `projects/<project>.md` |
+| Style or architecture question | `conventions/` |
+| Working with an external contact or client | `actors/<actor>.md` |
+| Might already be solved | `index.md`, then syntheses / topic pages |
+
+If the wiki has no relevant entry, proceed without it.
+
+### Log format
+
+Every wiki write appends one line to `log.md`:
+
+```text
+## [YYYY-MM-DD] <operation> | <short description>
+```
+
+Operations: `create-page`, `ingest`, `query-filed`, `lint`, `supersede`.
+
+### Lint
+
+Lint a page when new evidence contradicts it, it has gone stale, it keeps getting touched without cleanup, or on request. Fix the page in place: read it fully, remove stale or duplicate claims, mark superseded ones, add missing cross-links, update frontmatter, and append a `lint`/`supersede` line to `log.md`. Never write separate lint-report files.

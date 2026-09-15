@@ -1,0 +1,95 @@
+---
+description: deepresearch skill
+alwaysApply: false
+---
+
+---
+name: deepresearch
+description: >
+  Multi-round deep research workflow for complex topics, architectural investigations,
+  and state-of-the-art surveys using sonar search and headless page fetching. Plans,
+  decomposes inquiries into sub-questions, runs iterative search-fetch cycles, cross-verifies
+  claims across independent sources, and delivers a fully cited artifact report. Runs on
+  "/deepresearch" or "/deepsearch". For quick single-pass lookups, use /research.
+triggers: ["/deepresearch", "/deepsearch"]
+source: ""
+allowed-tools: Bash, Glob, Grep, Read, Edit, Write, mycelium_publish_report, sonar_search
+---
+
+# Deep research: plan, iterate, verify, cite, artifact
+
+Multi-round autonomous research workflow for exhaustive investigation. Sonar provides multi-engine search (`sonar search`) and headless page reading (`sonar fetch`).
+
+Deliverables: A structured synthesis in conversation, a full report recorded as a Mycelium artifact, and durable findings filed to the Mycelium wiki.
+
+## Phase 1: Planning and state externalization
+
+1. **Define the objective**: State the core question and define the target report structure.
+2. **Decompose into sub-questions**: Break the inquiry into 3-8 concrete, researchable sub-questions (e.g. implementation details, comparative benchmarks, edge cases, failure modes).
+3. **Initialize the research log**: Externalize state to `/tmp/dr-<topic>.md`. Record every query, fetched URL, key extracted data point, and evaluation state as you proceed.
+
+## Phase 2: Iterative research loops (2 to 5 rounds)
+
+1. **Broad discovery (`sonar search`)**:
+   Run targeted queries for active sub-questions:
+   ```sh
+   sonar search "sub-question keywords" -n 10
+   ```
+   Evaluate titles, snippets, and engine trust order to shortlist 2-4 candidate URLs per sub-question.
+
+2. **Deep reading (`sonar fetch`)**:
+   Extract full rendered markdown via Sonar's headless browser engine:
+   ```sh
+   sonar fetch "https://example.com/spec" > /tmp/page.md
+   ```
+   For single-page apps or JavaScript-heavy sites:
+   ```sh
+   sonar fetch --wait-until networkidle "https://example.com/spa" > /tmp/page.md
+   ```
+   Inspect the extracted content thoroughly. Prioritize primary sources (official repositories, RFCs, technical specs, creator blog posts) over secondary aggregators.
+
+3. **Follow the citation thread**:
+   When high-value pages reference foundational sources or original RFCs, follow those leads by fetching the cited URLs.
+
+4. **Adaptive re-planning**:
+   Review findings against sub-questions. Identify information gaps, contradictions, or newly surfaced angles. Spawn focused follow-up queries to resolve gaps.
+
+## Phase 3: Independent verification and quality audit
+
+Perform a dedicated verification pass before writing the final report:
+
+- **3-tier confidence classification**:
+  - **Verified**: Confirmed across 2+ independent primary sources.
+  - **Single-source**: Supported by one authoritative source, explicitly attributed.
+  - **Inference**: Analytical reasoning or extrapolation, clearly labeled.
+- **Temporal freshness check**: Verify publication and update dates for volatile metrics, version numbers, or pricing.
+- **Surface contradictions**: Do not resolve conflicting claims by guess. Present both data points with their respective sources.
+
+## Phase 4: Synthesis and publication
+
+1. **Draft the report**:
+   - Follow ISO 24495-1 plain language: clear headings, executive answer upfront, structured sub-sections.
+   - Separate verified facts from analysis.
+   - Attach point-of-claim citations.
+2. **Publish artifact**:
+   Record the markdown report with `mycelium artifact add`:
+   ```sh
+   mycelium artifact add /tmp/deep-research-report.md --title "Topic Deep Research Report"
+   ```
+   Return the canonical URL (`https://<server>/artifacts/<id>`).
+3. **Store durable memory**:
+   If non-obvious, reusable facts or operational gotchas were discovered, file them to `~/.mycelium/memory/` using `mycelium memory add`.
+
+## Citation standards
+
+- **Full visible URLs**: Write bare URLs (`https://example.com/path`) or readable titles alongside visible URLs. Never mask URLs behind anchor text.
+- **Point-of-claim attribution**: Every technical claim, metric, or quotation must carry its citation inline at the specific sentence or bullet.
+- **Read-before-citing**: Cite only content read through `sonar fetch`. Search snippets are leads, not verified evidence.
+- **Comprehensive logging**: Include all consulted URLs in the report's bibliography, categorized as verified, single-source, or failed/blocked fetches.
+
+## Anti-patterns
+
+- Running a single search and calling it deep research (use `/research` instead).
+- Accumulating dozens of URLs without reading their full contents via `sonar fetch`.
+- Silently glossing over contradictory sources.
+- Padding missing answers with generic speculation instead of stating source unavailability.
