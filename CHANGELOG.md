@@ -4,6 +4,12 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed
+
+- `sonar search` no longer animates a spinner on stderr. The braille
+  frames duplicated lines on some terminals (a tty or line-ending mismatch),
+  so the wait now runs silently.
+
 ## [v0.10.0]
 
 ### Added

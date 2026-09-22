@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
-	"time"
 
 	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
@@ -71,36 +69,12 @@ func runSearch(cmd *cobra.Command, args []string) error {
 		}
 		return writeJSON(results)
 	}
-	results, err = searchWithSpinner(context.Background(), cfg, query, count, include)
+	results, err = search.Query(context.Background(), cfg, query, count, include)
 	if err != nil {
 		return err
 	}
 	writeText(results, query)
 	return nil
-}
-
-// searchWithSpinner runs the search while a spinner animates on stderr, so
-// stdout stays clean for JSON and the user sees the run is alive. Frames stop
-// when the query answers, success or failure.
-func searchWithSpinner(ctx context.Context, cfg *config.Config, query string, count int, include []string) ([]engines.Result, error) {
-	done := make(chan struct{})
-	var wg sync.WaitGroup
-	wg.Go(func() {
-		frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
-		for i := 0; ; i = (i + 1) % len(frames) {
-			select {
-			case <-done:
-				fmt.Fprint(os.Stderr, "\r\033[K")
-				return
-			case <-time.After(100 * time.Millisecond):
-				fmt.Fprintf(os.Stderr, "\r\033[K%s searching…", frames[i])
-			}
-		}
-	})
-	results, err := search.Query(ctx, cfg, query, count, include)
-	close(done)
-	wg.Wait()
-	return results, err
 }
 
 func writeJSON(results []engines.Result) error {
