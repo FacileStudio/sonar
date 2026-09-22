@@ -4,6 +4,8 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.11.1] - 2026-09-22
+
 ### Changed
 
 - `sonar search` no longer animates a spinner on stderr. The braille
