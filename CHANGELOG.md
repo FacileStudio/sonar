@@ -4,6 +4,14 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.12.1] - 2026-09-25
+
+### Fixed
+
+- Truncate search snippets to single-line summaries (up to 280 characters with ellipsis) and collapse whitespace to prevent multi-paragraph excerpt flooding in terminal results.
+- Search fanout adds early grace window cutoff (1.2s) once enough results have arrived, terminating slow or hanging engine calls like unconfigured scrapers.
+- Avoid terminal OSC background color query hang in CLI output by using `COLORFGBG` detection with dark-mode fallback.
+
 ## [v0.12.0] - 2026-09-25
 
 ### Added

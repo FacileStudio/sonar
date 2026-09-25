@@ -93,11 +93,21 @@ type palette struct {
 	engine  lipgloss.Style
 }
 
+func isDarkBackground() bool {
+	if v := os.Getenv("COLORFGBG"); v != "" {
+		parts := strings.Split(v, ";")
+		if len(parts) >= 2 {
+			return parts[len(parts)-1] != "15" && parts[len(parts)-1] != "7"
+		}
+	}
+	return true
+}
+
 // makePalette builds styles with adaptive colors: ANSI-safe names that resolve
 // differently for a light and a dark background. Styles render desc messages
 // plainly and strip ANSI when stdout is not a terminal.
 func makePalette() palette {
-	lightDark := lipgloss.LightDark(lipgloss.HasDarkBackground(os.Stdin, os.Stdout))
+	lightDark := lipgloss.LightDark(isDarkBackground())
 	return palette{
 		rank:    lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#3fa45c"), lipgloss.Color("#9bcf6a"))).Bold(true),
 		title:   lipgloss.NewStyle().Bold(true),
@@ -107,16 +117,23 @@ func makePalette() palette {
 	}
 }
 
+func formatSnippet(s string) string {
+	s = strings.Join(strings.Fields(s), " ")
+	const maxLen = 280
+	if len(s) > maxLen {
+		return s[:maxLen] + "…"
+	}
+	return s
+}
+
 func writeText(results []engines.Result, query string) {
 	p := makePalette()
 	lipgloss.Println(fmt.Sprintf("sonar: %d results for %s", len(results), query))
 	for i, r := range results {
 		lipgloss.Println(p.rank.Render(fmt.Sprintf("%d.", i+1)) + " " + p.title.Render(r.Title))
-		if r.Snippet != "" {
-			lipgloss.Println("   " + p.snippet.Render(r.Snippet))
+		if snip := formatSnippet(r.Snippet); snip != "" {
+			lipgloss.Println("   " + p.snippet.Render(snip))
 		}
 		lipgloss.Println("   " + p.url.Render(r.URL) + "   " + p.engine.Render(r.Engine))
 	}
 }
-
-func configPath() string { return config.Path() }

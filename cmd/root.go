@@ -5,8 +5,11 @@ import (
 	"os"
 
 	"charm.land/fang/v2"
+	"github.com/FacileStudio/sonar/internal/config"
 	"github.com/spf13/cobra"
 )
+
+func configPath() string { return config.Path() }
 
 var version = "dev"
 

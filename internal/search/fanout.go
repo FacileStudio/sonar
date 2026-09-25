@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
+	"time"
 
 	"github.com/FacileStudio/sonar/internal/engines"
 )
@@ -35,32 +35,63 @@ func (d *Dispatcher) selectUnits(include []string) ([]unit, error) {
 	return units, nil
 }
 
+func (d *Dispatcher) launchUnit(ctx context.Context, u *unit, query string, count int, ch chan<- []engines.Result) {
+	if !d.acquire(ctx, u) {
+		ch <- nil
+		return
+	}
+	defer d.release(u)
+	res, err := d.one(ctx, u, query, count)
+	if err == nil && len(res) > 0 {
+		ch <- res
+		return
+	}
+	ch <- nil
+}
+
+func collectResults(ctx context.Context, cancel context.CancelFunc, ch <-chan []engines.Result, count, total int) []engines.Result {
+	var (
+		all     []engines.Result
+		timerCh <-chan time.Time
+	)
+	for range total {
+		select {
+		case res := <-ch:
+			all = append(all, res...)
+			if len(all) >= count && timerCh == nil {
+				t := time.NewTimer(1200 * time.Millisecond)
+				defer t.Stop()
+				timerCh = t.C
+			}
+		case <-timerCh:
+			cancel()
+			return all
+		case <-ctx.Done():
+			return all
+		}
+	}
+	return all
+}
+
 // fanOut runs the selected units, collecting the results that survive. Keyed
 // engines run concurrently; scrapers hold the single scrape slot.
 func (d *Dispatcher) fanOut(ctx context.Context, units []unit, query string, count int) ([]engines.Result, error) {
-	var (
-		mu  sync.Mutex
-		all []engines.Result
-		wg  sync.WaitGroup
-	)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	resCh := make(chan []engines.Result, len(units))
+	var launched int
 	for i := range units {
 		u := &units[i]
 		if u.breaker.Open() {
 			continue
 		}
-		wg.Go(func() {
-			if !d.acquire(ctx, u) {
-				return
-			}
-			defer d.release(u)
-			if res, err := d.one(ctx, u, query, count); err == nil {
-				mu.Lock()
-				all = append(all, res...)
-				mu.Unlock()
-			}
-		})
+		launched++
+		go d.launchUnit(ctx, u, query, count, resCh)
 	}
-	wg.Wait()
+	if launched == 0 {
+		return nil, errors.New("no engine returned results")
+	}
+	all := collectResults(ctx, cancel, resCh, count, launched)
 	if len(all) == 0 {
 		return nil, errors.New("no engine returned results")
 	}

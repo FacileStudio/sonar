@@ -81,11 +81,20 @@ func (p *Parallel) Search(ctx context.Context, query string, count int) ([]Resul
 		out = append(out, Result{
 			Title:   r.Title,
 			URL:     r.URL,
-			Snippet: strings.Join(r.Excerpts, "\n\n"),
+			Snippet: cleanSnippet(r.Excerpts),
 			Engine:  p.Name(),
 		})
 	}
 	return out, nil
+}
+
+func cleanSnippet(excerpts []string) string {
+	combined := strings.Join(strings.Fields(strings.Join(excerpts, " ")), " ")
+	const maxLen = 280
+	if len(combined) <= maxLen {
+		return combined
+	}
+	return combined[:maxLen] + "…"
 }
 
 // Extract extracts web page content as markdown from one or more URLs using the Parallel.ai Extract API.
