@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
@@ -16,9 +16,10 @@ import (
 )
 
 var (
-	flagJSON   bool
-	flagCount  int
-	flagEngine string
+	flagJSON          bool
+	flagCount         int
+	flagEngine        string
+	flagSearchTimeout time.Duration
 )
 
 var searchCmd = &cobra.Command{
@@ -32,6 +33,7 @@ func init() {
 	searchCmd.Flags().BoolVar(&flagJSON, "json", false, "emit results as JSON")
 	searchCmd.Flags().IntVarP(&flagCount, "count", "n", 0, "max results to return (default: config count)")
 	searchCmd.Flags().StringVar(&flagEngine, "engines", "", "comma-separated engines to run (default: all enabled)")
+	searchCmd.Flags().DurationVarP(&flagSearchTimeout, "timeout", "t", 0, "timeout for search (default: config timeout)")
 }
 
 func parseEngines(s string) []string {
@@ -60,18 +62,16 @@ func runSearch(cmd *cobra.Command, args []string) error {
 	if flagCount > 0 {
 		count = flagCount
 	}
-	include := parseEngines(flagEngine)
-	var results []engines.Result
-	if flagJSON {
-		results, err = search.Query(context.Background(), cfg, query, count, include)
-		if err != nil {
-			return err
-		}
-		return writeJSON(results)
+	if flagSearchTimeout > 0 {
+		cfg.TimeoutSeconds = int(flagSearchTimeout.Seconds())
 	}
-	results, err = search.Query(context.Background(), cfg, query, count, include)
+	include := parseEngines(flagEngine)
+	results, err := search.Query(cmd.Context(), cfg, query, count, include)
 	if err != nil {
 		return err
+	}
+	if flagJSON {
+		return writeJSON(results)
 	}
 	writeText(results, query)
 	return nil

@@ -53,7 +53,7 @@ func SearxngName(urls []string, i int) string {
 // scrape engines (bing, ddg) and SearXNG instances never need one.
 var needsKey = map[string]bool{
 	"brave": true, "tavily": true, "exa": true, "firecrawl": true, "serpapi": true,
-	"browserbase": true, "brightdata": true, "linkup": true,
+	"browserbase": true, "brightdata": true, "linkup": true, "parallel": true,
 	"rod": false,
 }
 
@@ -100,6 +100,8 @@ func makeKeyed(name string, def *config.EngineDef, client *http.Client) engines.
 		return &engines.BrightData{Key: def.APIKey, Zone: def.Zone, Client: client, Count: def.Count}
 	case "linkup":
 		return &engines.Linkup{Key: def.APIKey, Client: client, Count: def.Count}
+	case "parallel":
+		return &engines.Parallel{Key: def.APIKey, Client: client, Count: def.Count}
 	}
 	return nil
 }

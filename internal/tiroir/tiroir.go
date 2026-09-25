@@ -51,6 +51,8 @@ func EnvCandidates(name string) []string {
 		return []string{CanonicalKey(name), "BRIGHTDATA_KEY", "BRIGHTDATA_API_KEY"}
 	case "linkup":
 		return []string{CanonicalKey(name), "LINKUP_KEY", "LINKUP_API_KEY"}
+	case "parallel":
+		return []string{CanonicalKey(name), "PARALLEL_API_KEY", "PARALLEL_KEY", "parallel_api_key"}
 	default:
 		return []string{CanonicalKey(name)}
 	}

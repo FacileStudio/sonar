@@ -15,13 +15,14 @@ var (
 	flagWaitUntil string
 	flagSelector  string
 	flagTimeout   time.Duration
+	flagBrowser   bool
 )
 
 var fetchCmd = &cobra.Command{
-	Use:   "fetch <URL> [--wait-until networkidle] [--selector css] [--timeout 30s]",
-	Short: "Fetch a single web page as markdown",
-	Long:  "Extract the HTML content from a single URL using a headless browser and print clean markdown to stdout.",
-	Args:  cobra.ExactArgs(1),
+	Use:   "fetch <URL>... [--wait-until networkidle] [--selector css] [--timeout 30s] [--browser]",
+	Short: "Fetch web pages as markdown",
+	Long:  "Extract HTML content from one or more URLs and print clean markdown to stdout.",
+	Args:  cobra.MinimumNArgs(1),
 	RunE:  runFetch,
 }
 
@@ -29,38 +30,45 @@ func init() {
 	fetchCmd.Flags().StringVar(&flagWaitUntil, "wait-until", "networkidle", "wait condition: load, domcontentloaded, networkidle, or none")
 	fetchCmd.Flags().StringVarP(&flagSelector, "selector", "s", "", "CSS selector to target specific container element")
 	fetchCmd.Flags().DurationVarP(&flagTimeout, "timeout", "t", 30*time.Second, "navigation and rendering timeout")
+	fetchCmd.Flags().BoolVarP(&flagBrowser, "browser", "b", false, "force headless browser rendering")
 }
 
 func runFetch(cmd *cobra.Command, args []string) error {
-	url := strings.TrimSpace(args[0])
-	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-		return fmt.Errorf("URL must start with http:// or https://")
+	urls := make([]string, 0, len(args))
+	for _, arg := range args {
+		u := strings.TrimSpace(arg)
+		if !strings.HasPrefix(u, "http://") && !strings.HasPrefix(u, "https://") {
+			return fmt.Errorf("URL must start with http:// or https://: %s", u)
+		}
+		urls = append(urls, u)
 	}
-
-	count := rodCount()
-	rodEngine := &engines.Rod{
-		Count:         count,
+	opts := engines.ExtractOptions{
+		ParallelKey:   parallelKey(),
 		WaitCondition: flagWaitUntil,
 		Selector:      flagSelector,
 		Timeout:       flagTimeout,
+		ForceBrowser:  flagBrowser,
 	}
-	results, err := rodEngine.Search(cmd.Context(), url, 1)
+	results, err := engines.ExtractPages(cmd.Context(), urls, opts)
 	if err != nil {
 		return err
 	}
-	if len(results) == 0 {
-		return fmt.Errorf("no results returned")
+	for _, r := range results {
+		if len(results) > 1 {
+			fmt.Printf("# %s\n\n%s\n\n", r.URL, r.Snippet)
+		} else {
+			fmt.Println(r.Snippet)
+		}
 	}
-	fmt.Println(results[0].Snippet)
 	return nil
 }
 
-func rodCount() int {
+func parallelKey() string {
 	cfg, err := config.Load(configPath())
 	if err == nil && cfg != nil {
-		if def, ok := cfg.Engines["rod"]; ok && def.Count > 0 {
-			return def.Count
+		if def, ok := cfg.Engines["parallel"]; ok && def.APIKey != "" {
+			return def.APIKey
 		}
 	}
-	return 1
+	return ""
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/FacileStudio/sonar/internal/config"
 	"github.com/FacileStudio/sonar/internal/engines"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -31,12 +32,12 @@ func runFetch(ctx context.Context, _ *mcp.CallToolRequest, in fetchInput) (*mcp.
 		return nil, fetchOutput{}, errors.New("URL must start with http:// or https://")
 	}
 
-	rodEngine := &engines.Rod{
-		Count:         1,
+	opts := engines.ExtractOptions{
+		ParallelKey:   fetchParallelKey(),
 		WaitCondition: in.WaitUntil,
 		Selector:      in.Selector,
 	}
-	results, err := rodEngine.Search(ctx, url, 1)
+	results, err := engines.ExtractPages(ctx, []string{url}, opts)
 	if err != nil {
 		return nil, fetchOutput{}, err
 	}
@@ -50,4 +51,14 @@ func runFetch(ctx context.Context, _ *mcp.CallToolRequest, in fetchInput) (*mcp.
 		Content: results[0].Snippet,
 	}
 	return nil, out, nil
+}
+
+func fetchParallelKey() string {
+	cfg, err := config.Load(config.Path())
+	if err == nil && cfg != nil {
+		if def, ok := cfg.Engines["parallel"]; ok && def.APIKey != "" {
+			return def.APIKey
+		}
+	}
+	return ""
 }

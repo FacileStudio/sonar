@@ -4,6 +4,20 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.12.0] - 2026-09-25
+
+### Added
+
+- Parallel.ai engine (`parallel`): fast LLM-optimized search and extraction, reads `SONAR_PARALLEL_KEY`, `PARALLEL_API_KEY`, or tiroir `PARALLEL_API_KEY`.
+- Multi-URL parallel `sonar fetch <URL>...`: fetches multiple web pages concurrently.
+- Fast extraction pipeline: uses Parallel extract and fast HTTP fetch before falling back to headless browser.
+- `--browser` (`-b`) flag on `sonar fetch` to force headless browser rendering when needed.
+- `--timeout` (`-t`) flag on `sonar search` to override default engine search timeout.
+
+### Changed
+
+- Multi-engine dispatch acquires concurrency slots inside worker goroutines, preventing head-of-line blocking across keyed engines.
+
 ## [v0.11.1] - 2026-09-22
 
 ### Changed

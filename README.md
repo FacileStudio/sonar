@@ -12,6 +12,7 @@ is not refetched.
 
 | Engine | Kind | Default |
 | --- | --- | --- |
+| parallel | keyed API | off |
 | brave | keyed API | off |
 | tavily | keyed API | off |
 | exa | keyed API | off |

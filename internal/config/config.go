@@ -56,14 +56,15 @@ func Default() *Config {
 		CacheTTL:        15 * time.Minute,
 		SearxngPriority: 9,
 		Engines: map[string]*EngineDef{
-			"brave":       {Enabled: false, Priority: 1, Count: 10},
-			"tavily":      {Enabled: false, Priority: 2, Count: 10},
-			"exa":         {Enabled: false, Priority: 3, Count: 10},
-			"firecrawl":   {Enabled: false, Priority: 4, Count: 10},
-			"serpapi":     {Enabled: false, Priority: 5, Count: 10},
-			"browserbase": {Enabled: false, Priority: 6, Count: 10},
-			"brightdata":  {Enabled: false, Priority: 7, Count: 10},
-			"linkup":      {Enabled: false, Priority: 8, Count: 10},
+			"parallel":    {Enabled: false, Priority: 1, Count: 10},
+			"brave":       {Enabled: false, Priority: 2, Count: 10},
+			"tavily":      {Enabled: false, Priority: 3, Count: 10},
+			"exa":         {Enabled: false, Priority: 4, Count: 10},
+			"firecrawl":   {Enabled: false, Priority: 5, Count: 10},
+			"serpapi":     {Enabled: false, Priority: 6, Count: 10},
+			"browserbase": {Enabled: false, Priority: 7, Count: 10},
+			"brightdata":  {Enabled: false, Priority: 8, Count: 10},
+			"linkup":      {Enabled: false, Priority: 9, Count: 10},
 			"bing":        {Enabled: false, Priority: 10, Count: 10},
 			"ddg":         {Enabled: false, Priority: 11, Count: 10},
 			"rod":         {Enabled: false, Priority: 12, Count: 1},
@@ -124,8 +125,11 @@ func fillKeyFromTiroir(name string, e *EngineDef) {
 	if e.APIKey != "" {
 		return
 	}
-	if v := tiroir.Get(tiroir.CanonicalKey(name)); v != "" {
-		e.APIKey = v
+	for _, cand := range tiroir.EnvCandidates(name) {
+		if v := tiroir.Get(cand); v != "" {
+			e.APIKey = v
+			return
+		}
 	}
 }
 

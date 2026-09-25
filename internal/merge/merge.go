@@ -20,6 +20,7 @@ var engineTrust = map[string]int{
 	"exa":         5,
 	"firecrawl":   5,
 	"linkup":      5,
+	"parallel":    5,
 	"serpapi":     5,
 	"tavily":      5,
 	"bing":        1,
