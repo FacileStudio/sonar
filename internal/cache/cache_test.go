@@ -69,3 +69,17 @@ func putRepeatedly(t *testing.T, c *Cache, query string, wg *sync.WaitGroup) {
 		}
 	}
 }
+
+func TestEmptyDirCachesInMemory(t *testing.T) {
+	c, err := New("", time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Put("tavily", "q", []engines.Result{{Title: "hit"}}); err != nil {
+		t.Fatal(err)
+	}
+	got, ok := c.Get("tavily", "Q", 5)
+	if !ok || len(got) != 1 || got[0].Title != "hit" {
+		t.Fatalf("Get = %v, %v", got, ok)
+	}
+}

@@ -16,6 +16,7 @@ Go 1.26 is required (`go.mod`).
 
 - `cmd/` — cobra commands (search, config, cache, mcp, open). Entry point in `main.go` calls `cmd.Execute()`.
 - `internal/` — implementation, organized by concern (config, engines, search, merge, cache, httpc, politeness, mcpserver, tiroir).
+- `websearch/` — public Go library over `internal/search`. Keys only from its `Config`; never reads config files, env or tiroir.
 - `internal/engines/` — one file per search engine (brave, tavily, exa, searxng, bing, ddg, etc.). Each engine implements a common result interface.
 
 No external imports from `internal/` are allowed outside this module.

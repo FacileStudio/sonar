@@ -113,6 +113,17 @@ MCP server work from a bare spawn — it inherits no shell exports, so without
 the tiroir fallback it would silently skip every keyed engine. Precedence:
 config file, then environment, then tiroir.
 
+## Go library
+
+`github.com/FacileStudio/sonar/websearch` runs the same dispatcher from Go.
+Keys come only from its `Config`: it reads no config file, no environment and
+no tiroir, and caches results in memory.
+
+```go
+c, err := websearch.New(websearch.Config{Keys: map[string]string{"tavily": key}})
+results, err := c.Search(ctx, "query", 5, nil)
+```
+
 ## Exit codes
 
 `0` success. `1` error — a failing search, or a missing query.
