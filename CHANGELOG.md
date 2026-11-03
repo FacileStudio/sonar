@@ -4,6 +4,12 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.13.0] - 2026-11-03
+
+### Added
+
+- Public `websearch` Go package: `New(Config)` and `Search` run the multi-engine dispatcher as a library. Keys come only from `Config` (no config file, env or tiroir reads) and the cache can live in memory.
+
 ## [v0.12.1] - 2026-09-25
 
 ### Fixed
