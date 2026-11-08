@@ -7,3 +7,7 @@ dist/
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 /graft/
+
+apps/client/node_modules/
+apps/client/build/
+apps/client/.svelte-kit/

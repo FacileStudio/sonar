@@ -1,0 +1,6 @@
+.git
+dist
+sonar
+apps/client/node_modules
+apps/client/build
+apps/client/.svelte-kit

@@ -36,3 +36,9 @@ func TestBraveVerticalsParseImagesAndNews(t *testing.T) {
 		t.Fatal("a refused key must fail")
 	}
 }
+
+func TestPlainStripsHighlightsAndEntities(t *testing.T) {
+	if got := Plain(`use <strong>adapter-static</strong> &amp; it&#x27;s fine`); got != "use adapter-static & it's fine" {
+		t.Fatalf("Plain = %q", got)
+	}
+}

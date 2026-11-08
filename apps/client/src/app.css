@@ -1,0 +1,34 @@
+/*
+ * muse is the design system. tokens.css imports tailwind itself and carries the Goga
+ * @font-face rules, the fc-* theme, dark mode, `color-scheme` and the base layer — so this
+ * file never imports tailwind a second time and never redeclares a colour.
+ */
+@import '@facile/muse/styles';
+@source '../node_modules/@facile/muse/src';
+
+/*
+ * The suite's semantic names, aliased onto muse tokens. Capsule's own markup speaks `fc-*`,
+ * but class strings copy-paste in and out of the other Facile repos in both directions, and
+ * an alias Tailwind never sees used emits nothing — so this costs no bytes and keeps
+ * `bg-background` / `text-muted-foreground` rendering in muse's palette if any arrives.
+ */
+@theme inline {
+	--color-background: var(--color-fc-page);
+	--color-foreground: var(--color-fc-fg);
+	--color-card: var(--color-fc-component);
+	--color-card-foreground: var(--color-fc-fg);
+	--color-muted: var(--color-fc-surface);
+	--color-muted-foreground: var(--color-fc-fg-muted);
+	--color-secondary: var(--color-fc-surface);
+	--color-secondary-foreground: var(--color-fc-fg);
+	--color-accent: var(--color-fc-surface);
+	--color-accent-foreground: var(--color-fc-fg);
+	--color-border: var(--color-fc-border);
+	--color-input: var(--color-fc-border);
+	--color-ring: var(--color-fc-ring);
+	--color-primary: var(--color-fc-accent);
+	--color-primary-foreground: var(--color-fc-accent-fg);
+	--color-destructive: var(--color-fc-danger);
+	--color-destructive-foreground: var(--color-fc-danger-fg);
+	--font-heading: var(--font-fc-title);
+}

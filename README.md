@@ -191,6 +191,10 @@ browser. A non-2xx status is returned in `Page.Status`, not as an error.
 fetching trusted URLs, since a redirect can then reach loopback, private
 networks and cloud metadata.
 
+## Hosted service
+
+`sonar serve` runs the hosted search engine at https://sonar.facile.studio: a web UI (web, images and news tabs, keyboard navigation, suggestions, `!bangs`, OpenSearch), a JSON API under `/api` with its reference at `/docs`, and an image proxy. People sign in with their Facile account. Queries are never logged or stored; each search on sonar's own keys counts once against a daily quota set by the person's plan, and searches on keys they bring themselves do not count. See [docs/hosted.md](docs/hosted.md).
+
 ## Exit codes
 
 `0` success. `1` error — a failing search, or a missing query.
