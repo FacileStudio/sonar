@@ -4,6 +4,14 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+
+- `websearch.Client.Fetch(ctx, url, FetchOptions)` fetches one page as markdown from Go and returns a `*Page` with `FinalURL`, `Status`, `Title`, `Markdown`, `Engine` and `Truncated`. The `--public-only` guard is on by default (every redirect hop, every browser subrequest, dialer-level address check); `FetchOptions.AllowInternal` opts out for trusted callers. A refusal is a `*websearch.BlockedError` with a code. The plain HTTP path needs no Chromium; `Browser` opts into rendering and `Selector` needs it.
+
+### Fixed
+
+- A guarded browser fetch re-checks the guard after extraction, so a late redirect (such as a meta refresh that fires after load) that was refused fails the URL instead of returning the refusal page.
+
 ## [v0.13.1] - 2026-11-08
 
 ### Security

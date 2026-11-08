@@ -110,31 +110,7 @@ func (r *Rod) doSearch(ctx context.Context, query string) ([]Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := r.load(page, query, guard); err != nil {
-		return nil, err
-	}
-	title, snippet, err := extractContent(page, r.Selector)
-	if err != nil {
-		return nil, err
-	}
-	if title == "" {
-		title = query
-	}
-	return []Result{{Title: title, Snippet: snippet, URL: query, Engine: "rod", Priority: 12}}, nil
-}
-
-func (r *Rod) load(page *rod.Page, query string, guard *rodGuard) error {
-	navErr := page.Navigate(query)
-	if navErr == nil {
-		_ = r.wait(page)
-	}
-	if err := guard.verdict(); err != nil {
-		return err
-	}
-	if navErr != nil {
-		return fmt.Errorf("%w: %s", ErrTransient, navErr)
-	}
-	return nil
+	return r.render(page, query, guard)
 }
 
 func (r *Rod) wait(page *rod.Page) error {
