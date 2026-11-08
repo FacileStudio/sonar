@@ -4,6 +4,16 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.15.4] - 2026-11-08
+
+### Fixed
+
+- Restored full width on the home search bar by explicitly setting `w-full` on `SearchBox` and its container.
+
+### Removed
+
+- Removed the privacy note below the search input on the home page.
+
 ## [v0.15.3] - 2026-11-08
 
 ### Changed
