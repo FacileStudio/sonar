@@ -3,6 +3,7 @@ package auth
 import (
 	"database/sql"
 	"net/http"
+	"strings"
 
 	"github.com/FacileStudio/porte"
 	"github.com/FacileStudio/porte/directory"
@@ -34,7 +35,7 @@ type sessionResponse struct {
 func RegisterRoutes(router chi.Router, kits *Kits, features Features) {
 	kits.Sessions.Mount(router)
 	kits.OIDC.Mount(router)
-	router.With(kits.Sessions.Optional).Get("/auth/session", handleSession(kits.DB, features))
+	router.With(kits.Sessions.Optional).Get("/auth/session", handleSession(kits.DB, features, kits.Issuer))
 }
 
 // MountRegistre mounts Registre's directory nudge and deletion notices on the
@@ -48,7 +49,7 @@ func MountRegistre(root chi.Router, kits *Kits) {
 	}
 }
 
-func handleSession(db *sql.DB, features Features) http.HandlerFunc {
+func handleSession(db *sql.DB, features Features, issuer string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		identity, ok := porte.From(r.Context())
@@ -59,6 +60,14 @@ func handleSession(db *sql.DB, features Features) http.HandlerFunc {
 		user := &sessionUser{Email: identity.Email, Name: identity.Name}
 		_ = db.QueryRowContext(r.Context(), `SELECT email, name, avatar_url FROM porte_users WHERE id = $1`,
 			identity.UserID).Scan(&user.Email, &user.Name, &user.AvatarURL)
+		if user.AvatarURL == "" && strings.HasPrefix(issuer, "https://") {
+			var subject string
+			if err := db.QueryRowContext(r.Context(),
+				`SELECT subject FROM porte_identities WHERE user_id = $1 AND rtrim(provider, '/') = $2 LIMIT 1`,
+				identity.UserID, strings.TrimRight(issuer, "/")).Scan(&subject); err == nil && subject != "" {
+				user.AvatarURL = strings.TrimRight(issuer, "/") + "/avatars/" + subject
+			}
+		}
 		httpjson.WriteJSON(w, http.StatusOK, sessionResponse{User: user, Features: features})
 	}
 }

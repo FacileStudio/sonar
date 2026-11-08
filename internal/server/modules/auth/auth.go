@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"log/slog"
+	"strings"
 
 	"github.com/FacileStudio/porte"
 	"github.com/FacileStudio/porte/directory"
@@ -30,6 +31,37 @@ type Kits struct {
 	OIDC      *oidc.Kit
 	Syncer    *directory.Syncer
 	Deletions *directory.Deletions
+	Issuer    string
+}
+
+type pictureUsers struct {
+	*portepg.UserStore
+}
+
+// UpsertFromOIDC copies Registre's picture claim to AvatarURL before upserting.
+func (u pictureUsers) UpsertFromOIDC(ctx context.Context, claims porte.Claims) (int64, error) {
+	if claims.AvatarURL == "" && strings.HasPrefix(claims.Picture, "https://") {
+		claims.AvatarURL = claims.Picture
+	}
+	return u.UserStore.UpsertFromOIDC(ctx, claims)
+}
+
+func backfillPictures(ctx context.Context, db *sql.DB, issuer string) (int64, error) {
+	if !strings.HasPrefix(issuer, "https://") {
+		return 0, nil
+	}
+	base := strings.TrimRight(issuer, "/")
+	res, err := db.ExecContext(ctx, `UPDATE porte_users
+        SET avatar_url = $1 || '/avatars/' || porte_identities.subject,
+            avatar_source = 'oidc'
+       FROM porte_identities
+      WHERE porte_identities.user_id = porte_users.id
+        AND rtrim(porte_identities.provider, '/') = $2
+        AND porte_users.avatar_url = ''`, base, base)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }
 
 // New builds sessions and runs OIDC discovery. apply receives every directory
@@ -45,13 +77,18 @@ func New(ctx context.Context, db *sql.DB, cfg Config, apply func(context.Context
 		return nil, err
 	}
 	kit, err := oidc.New(ctx, cfg.Porte, oidc.Deps{
-		Users: store.Users(), Identities: store.Identities(), Sessions: sessions, Codes: store.LoginCodes(), Logger: logger,
+		Users: pictureUsers{UserStore: store.Users()}, Identities: store.Identities(), Sessions: sessions, Codes: store.LoginCodes(), Logger: logger,
 	})
 	if err != nil {
 		return nil, err
 	}
-	kits := &Kits{DB: db, Sessions: sessions, OIDC: kit}
+	kits := &Kits{DB: db, Sessions: sessions, OIDC: kit, Issuer: cfg.Porte.Issuer}
 	if cfg.Porte.Issuer != "" {
+		if strings.HasPrefix(cfg.Porte.Issuer, "https://") {
+			if _, err := backfillPictures(ctx, db, cfg.Porte.Issuer); err != nil && logger != nil {
+				logger.Warn("backfill pictures failed", slog.Any("error", err))
+			}
+		}
 		client := directory.Client{Issuer: cfg.Porte.Issuer, ClientID: cfg.ClientID, ClientSecret: cfg.ClientSecret}
 		kits.Syncer = &directory.Syncer{Client: client, Apply: apply, Logger: logger}
 		kits.Deletions = newDeletions(db, store, client, logger)
