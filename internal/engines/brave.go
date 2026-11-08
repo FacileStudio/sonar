@@ -13,12 +13,24 @@ import (
 // IP reputation never applies. Never rate-throttled client-side: Brave is
 // metered by its own monthly quota.
 type Brave struct {
-	Key    string
-	Client *http.Client
-	Count  int
+	Key     string
+	Client  *http.Client
+	Count   int
+	BaseURL string
+}
+
+func (b *Brave) base() string {
+	if b.BaseURL != "" {
+		return b.BaseURL
+	}
+	return "https://api.search.brave.com"
 }
 
 func (b *Brave) Name() string { return "brave" }
+
+// Uncached reports that Brave results must never be stored: Brave's Search API
+// terms forbid caching results beyond transient operation.
+func (b *Brave) Uncached() bool { return true }
 
 type braveResponse struct {
 	Web struct {
@@ -34,7 +46,7 @@ func (b *Brave) Search(ctx context.Context, query string, count int) ([]Result, 
 	if b.Key == "" {
 		return nil, ErrBlocked
 	}
-	u := "https://api.search.brave.com/res/v1/web/search?" + url.Values{
+	u := b.base() + "/res/v1/web/search?" + url.Values{
 		"q":     {query},
 		"count": {fmt.Sprint(countAt(count, b.Count))},
 	}.Encode()

@@ -26,7 +26,7 @@ const defaultCount = 10
 // (tavily, parallel, exa, brave, ...) to its API key; an empty key leaves the
 // engine off. Searxng lists self-hosted SearXNG base URLs. Timeout bounds one
 // engine request and CacheTTL how long results are reused; zero keeps sonar's
-// defaults.
+// defaults. Brave results are never cached, whatever CacheTTL says.
 type Config struct {
 	Keys     map[string]string
 	Searxng  []string
@@ -48,6 +48,7 @@ type Result struct {
 type Client struct {
 	dispatcher *search.Dispatcher
 	engines    []string
+	brave      *engines.Brave
 }
 
 // New builds a Client from cfg. A key for an engine sonar does not know, or
@@ -61,7 +62,7 @@ func New(cfg Config) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("websearch: %w", err)
 	}
-	return &Client{dispatcher: d, engines: names}, nil
+	return &Client{dispatcher: d, engines: names, brave: newBrave(cfg.Keys["brave"], cfg.Timeout)}, nil
 }
 
 // Engines lists the enabled engine names in sorted order.
