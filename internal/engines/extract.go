@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/FacileStudio/sonar/internal/httpc"
+	"github.com/FacileStudio/sonar/internal/netguard"
 )
 
 // ExtractOptions configures web page extraction.
@@ -21,6 +21,7 @@ type ExtractOptions struct {
 	Selector      string
 	Timeout       time.Duration
 	ForceBrowser  bool
+	Guard         *netguard.Guard
 }
 
 var reHTMLTitle = regexp.MustCompile(`(?i)<title\b[^>]*>(.*?)</title>`)
@@ -41,7 +42,7 @@ func extractHTTP(ctx context.Context, rawURL string, client *http.Client) (Resul
 	httpc.Fingerprint(req.Header)
 	res, err := client.Do(req)
 	if err != nil {
-		return Result{}, fmt.Errorf("%w: %v", ErrTransient, err)
+		return Result{}, fmt.Errorf("%w: %w", ErrTransient, err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
@@ -69,6 +70,7 @@ func extractRod(ctx context.Context, rawURL string, opts ExtractOptions) (Result
 		WaitCondition: opts.WaitCondition,
 		Selector:      opts.Selector,
 		Timeout:       opts.Timeout,
+		Guard:         opts.Guard,
 	}
 	results, err := rodEngine.Search(ctx, rawURL, 1)
 	if err != nil {
@@ -85,6 +87,9 @@ func extractOne(ctx context.Context, rawURL string, opts ExtractOptions, client 
 		return extractRod(ctx, rawURL, opts)
 	}
 	res, err := extractHTTP(ctx, rawURL, client)
+	if b, blocked := netguard.AsBlocked(err); blocked {
+		return Result{}, b
+	}
 	if err == nil && len(strings.TrimSpace(res.Snippet)) >= 150 {
 		return res, nil
 	}
@@ -92,7 +97,7 @@ func extractOne(ctx context.Context, rawURL string, opts ExtractOptions, client 
 }
 
 func tryParallelExtract(ctx context.Context, urls []string, opts ExtractOptions) ([]Result, bool) {
-	if opts.ForceBrowser || opts.Selector != "" || opts.ParallelKey == "" {
+	if opts.ForceBrowser || opts.Selector != "" || opts.ParallelKey == "" || opts.Guard != nil {
 		return nil, false
 	}
 	par := &Parallel{Key: opts.ParallelKey, Client: httpc.Client(20 * time.Second)}
@@ -113,37 +118,24 @@ func extractWorker(ctx context.Context, u string, opts ExtractOptions, client *h
 	return extractOne(ctx, u, opts, client)
 }
 
-func extractBatch(ctx context.Context, urls []string, opts ExtractOptions) ([]Result, error) {
-	client := httpc.Client(15 * time.Second)
-	results := make([]Result, len(urls))
-	errs := make([]error, len(urls))
-	var wg sync.WaitGroup
-	sem := make(chan struct{}, 5)
-	for i, u := range urls {
-		wg.Go(func() {
-			results[i], errs[i] = extractWorker(ctx, u, opts, client, sem)
-		})
-	}
-	wg.Wait()
-	var out []Result
-	for i, r := range results {
-		if errs[i] == nil {
-			out = append(out, r)
-		}
-	}
-	if len(out) == 0 && len(errs) > 0 {
-		return nil, errs[0]
-	}
-	return out, nil
-}
-
-// ExtractPages extracts markdown content from multiple URLs concurrently using the fastest available strategy.
+// ExtractPages extracts markdown content from multiple URLs concurrently using
+// the fastest available strategy. It returns the pages that succeeded, or the
+// first error when none did.
 func ExtractPages(ctx context.Context, urls []string, opts ExtractOptions) ([]Result, error) {
 	if len(urls) == 0 {
 		return nil, errors.New("no URLs to extract")
 	}
-	if res, ok := tryParallelExtract(ctx, urls, opts); ok {
-		return res, nil
+	var out []Result
+	var first error
+	for _, o := range ExtractEach(ctx, urls, opts) {
+		if o.Err == nil {
+			out = append(out, o.Result)
+		} else if first == nil {
+			first = o.Err
+		}
 	}
-	return extractBatch(ctx, urls, opts)
+	if len(out) == 0 {
+		return nil, first
+	}
+	return out, nil
 }

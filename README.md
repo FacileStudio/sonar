@@ -49,6 +49,51 @@ search runs every enabled engine as usual.
 the platform browser (`xdg-open` / `open` / `cmd start`). When no browser is
 available it prints the title and URL instead.
 
+## Fetching pages
+
+```sh
+sonar fetch https://example.com
+sonar fetch --json https://a.example https://b.example
+sonar fetch --public-only --json "$untrusted_url"
+```
+
+`sonar fetch` prints each page as markdown. It tries a plain HTTP fetch first
+and falls back to headless Chromium (`--browser` forces it). `--json` prints
+one object per URL: `url`, `title`, `markdown`, `engine`, or an `error` with a
+`code` and a `message`. The exit code is 1 when every URL failed.
+
+`--public-only` is for fetching URLs you do not trust, such as ones a user
+typed into a server. It is also on when the config sets `fetch.publicOnly:
+true` or the environment sets `SONAR_FETCH_PUBLIC_ONLY=1`; neither can turn
+it off. When it is on:
+
+- sonar refuses non-http(s) schemes, URLs with credentials, `localhost`,
+  single-label names, `.local`, `.internal`, `.localhost` (and similar)
+  suffixes, and numeric hosts a browser would read as IPv4.
+- sonar resolves the host and refuses it when ANY address is loopback,
+  private, link-local, CGNAT, ULA, multicast, unspecified or reserved,
+  including IPv4-mapped, NAT64 and 6to4 addresses that embed one.
+- The HTTP path dials the address it checked, re-checks the connected
+  address in the dialer's `Control` hook, and re-checks every redirect hop.
+- Chromium runs behind a loopback proxy inside sonar. Every request it makes
+  (navigations, 3xx hops, JavaScript and meta-refresh redirects, iframes,
+  subresources, websockets) goes through that proxy, which checks the host
+  and connects to the checked address. Chromium resolves no names itself
+  (`--host-resolver-rules`), skips QUIC, and keeps WebRTC to proxied traffic.
+- A page that triggers any refused request fails with no content.
+- The Parallel extract API is skipped, since sonar cannot check the hops a
+  third party follows.
+
+Error codes: `blocked_url` (scheme, credentials or internal name),
+`blocked_internal` (the host or a request reached an internal address),
+`blocked_unresolved` (no address to check), `fetch_failed` (anything else).
+
+Because the proxy and the HTTP dialer connect to the exact address they
+checked, a DNS answer that changes between check and connect (rebinding) is
+never used. The remaining exposure is a public address you do not consider
+public, for example a host on your own public subnet: firewall the fetcher's
+egress if that matters.
+
 Help pages, usage, errors, `--version` and shell completions are styled by
 [fang](https://github.com/charmbracelet/fang), Charm's cobra starter kit.
 `sonar man` emits a real roff man page and `sonar completion <shell>` prints a
@@ -88,7 +133,7 @@ launched from a normal shell inherits — no extra setup.
 `~/.sonar.yml`, or the path in `SONAR_CONFIG`. A missing file is not an error —
 the defaults stand. Top-level keys: `count`, `timeout`, `minInterval`,
 `jitter`, `breakerCooldown`, `cacheDir`, `cacheTTL`, `searxng`,
-`searxngPriority`, and `engines.*` with `enabled`, `apiKey`, `baseURL`,
+`searxngPriority`, `fetch.publicOnly`, and `engines.*` with `enabled`, `apiKey`, `baseURL`,
 `priority`, `count` per engine.
 
 Point sonar at the SearXNG instances you run with the `searxng` list — one URL
