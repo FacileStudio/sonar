@@ -4,6 +4,8 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.14.1] - 2026-11-08
+
 ### Fixed
 
 - `sonar fetch` (and `websearch.Fetch` with `Browser`) now uses an installed Chromium found on PATH or in the usual locations. Before, rod always downloaded its own glibc build, so on Alpine images with `apk add chromium` the browser path failed with `fork/exec ... chrome: no such file or directory`.
