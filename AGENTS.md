@@ -15,7 +15,8 @@ Go 1.26 is required (`go.mod`).
 ## Architecture
 
 - `cmd/` — cobra commands (search, config, cache, mcp, open). Entry point in `main.go` calls `cmd.Execute()`.
-- `internal/` — implementation, organized by concern (config, engines, search, merge, cache, httpc, politeness, mcpserver, tiroir).
+- `internal/` — implementation, organized by concern (config, engines, search, merge, cache, httpc, politeness, mcpserver, tiroir, netguard).
+- `internal/netguard/` — the `fetch --public-only` guard: internal-range checks, a guarded dialer and HTTP client, and the loopback proxy the headless browser runs behind.
 - `websearch/` — public Go library over `internal/search`. Keys only from its `Config`; never reads config files, env or tiroir.
 - `internal/engines/` — one file per search engine (brave, tavily, exa, searxng, bing, ddg, etc.). Each engine implements a common result interface.
 

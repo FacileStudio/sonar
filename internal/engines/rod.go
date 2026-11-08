@@ -10,6 +10,8 @@ import (
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/go-rod/stealth"
+
+	"github.com/FacileStudio/sonar/internal/netguard"
 )
 
 // Rod renders web pages in a headless browser via go-rod with stealth mode
@@ -19,6 +21,7 @@ type Rod struct {
 	WaitCondition string
 	Selector      string
 	Timeout       time.Duration
+	Guard         *netguard.Guard
 }
 
 // Name returns the engine identifier.
@@ -32,8 +35,8 @@ func (r *Rod) Search(ctx context.Context, query string, count int) ([]Result, er
 	return r.doSearch(ctx, query)
 }
 
-func newLauncher() *launcher.Launcher {
-	return launcher.New().
+func newLauncher(proxy string) *launcher.Launcher {
+	l := launcher.New().
 		Headless(true).
 		Leakless(true).
 		Set("headless", "new").
@@ -48,10 +51,11 @@ func newLauncher() *launcher.Launcher {
 		Set("window-size", "1920,1080").
 		Set("start-maximized").
 		Set("lang", "en-US,en")
+	return withProxy(l, proxy)
 }
 
-func launchBrowser(ctx context.Context) (*launcher.Launcher, *rod.Browser, error) {
-	l := newLauncher()
+func launchBrowser(ctx context.Context, proxy string) (*launcher.Launcher, *rod.Browser, error) {
+	l := newLauncher(proxy)
 	u, err := l.Launch()
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w: %s", ErrTransient, err)
@@ -89,7 +93,12 @@ func setupPage(br *rod.Browser, ctx context.Context) (*rod.Page, error) {
 }
 
 func (r *Rod) doSearch(ctx context.Context, query string) ([]Result, error) {
-	l, br, err := launchBrowser(ctx)
+	guard, err := startGuard(r.Guard)
+	if err != nil {
+		return nil, err
+	}
+	defer guard.close()
+	l, br, err := launchBrowser(ctx, guard.addr())
 	if err != nil {
 		return nil, err
 	}
@@ -101,10 +110,9 @@ func (r *Rod) doSearch(ctx context.Context, query string) ([]Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := page.Navigate(query); err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrTransient, err)
+	if err := r.load(page, query, guard); err != nil {
+		return nil, err
 	}
-	_ = r.wait(page)
 	title, snippet, err := extractContent(page, r.Selector)
 	if err != nil {
 		return nil, err
@@ -113,6 +121,20 @@ func (r *Rod) doSearch(ctx context.Context, query string) ([]Result, error) {
 		title = query
 	}
 	return []Result{{Title: title, Snippet: snippet, URL: query, Engine: "rod", Priority: 12}}, nil
+}
+
+func (r *Rod) load(page *rod.Page, query string, guard *rodGuard) error {
+	navErr := page.Navigate(query)
+	if navErr == nil {
+		_ = r.wait(page)
+	}
+	if err := guard.verdict(); err != nil {
+		return err
+	}
+	if navErr != nil {
+		return fmt.Errorf("%w: %s", ErrTransient, navErr)
+	}
+	return nil
 }
 
 func (r *Rod) wait(page *rod.Page) error {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/FacileStudio/sonar/internal/config"
 	"github.com/FacileStudio/sonar/internal/engines"
+	"github.com/FacileStudio/sonar/internal/netguard"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -32,10 +33,14 @@ func runFetch(ctx context.Context, _ *mcp.CallToolRequest, in fetchInput) (*mcp.
 		return nil, fetchOutput{}, errors.New("URL must start with http:// or https://")
 	}
 
+	cfg, _ := config.Load(config.Path())
 	opts := engines.ExtractOptions{
-		ParallelKey:   fetchParallelKey(),
+		ParallelKey:   fetchParallelKey(cfg),
 		WaitCondition: in.WaitUntil,
 		Selector:      in.Selector,
+	}
+	if cfg.FetchPublicOnly() {
+		opts.Guard = &netguard.Guard{}
 	}
 	results, err := engines.ExtractPages(ctx, []string{url}, opts)
 	if err != nil {
@@ -53,9 +58,8 @@ func runFetch(ctx context.Context, _ *mcp.CallToolRequest, in fetchInput) (*mcp.
 	return nil, out, nil
 }
 
-func fetchParallelKey() string {
-	cfg, err := config.Load(config.Path())
-	if err == nil && cfg != nil {
+func fetchParallelKey(cfg *config.Config) string {
+	if cfg != nil {
 		if def, ok := cfg.Engines["parallel"]; ok && def.APIKey != "" {
 			return def.APIKey
 		}

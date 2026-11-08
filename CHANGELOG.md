@@ -4,6 +4,15 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+### Security
+
+- `sonar fetch --public-only` (also `fetch.publicOnly: true` in the config or `SONAR_FETCH_PUBLIC_ONLY=1`) refuses any request that would reach an internal address. Before, a public URL that redirected (3xx, JavaScript `location`, meta refresh) or embedded iframes and subresources pointing at 127.0.0.1, 169.254.169.254, a Docker gateway or a container name was fetched and its content returned. Chromium now runs behind a loopback proxy in sonar that checks every request, redirect hop and websocket and connects only to the address it checked; the plain HTTP path dials the checked address, re-checks it in the dialer and re-checks every redirect. The MCP `fetch` tool honors the config and environment setting.
+
+### Added
+
+- `sonar fetch --json`: one object per URL with `url`, `title`, `markdown`, `engine`, or an `error` with a `code` (`blocked_url`, `blocked_internal`, `blocked_unresolved`, `fetch_failed`).
+- `sonar fetch` prints each failed URL on stderr instead of dropping it silently.
+
 ## [v0.13.0] - 2026-11-03
 
 ### Added

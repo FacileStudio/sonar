@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,13 +32,36 @@ type Config struct {
 	SearxngPriority int                   `yaml:"searxngPriority"`
 	DefaultCount    int                   `yaml:"count"`
 	TimeoutSeconds  int                   `yaml:"timeout"`
-	MinInterval     time.Duration         `yaml:"minInterval"`
-	Jitter          time.Duration         `yaml:"jitter"`
-	BreakerCooldown time.Duration         `yaml:"breakerCooldown"`
-	MaxConcurrency  int                   `yaml:"maxConcurrency"`
-	RetryBackoff    time.Duration         `yaml:"retryBackoff"`
-	CacheDir        string                `yaml:"cacheDir"`
-	CacheTTL        time.Duration         `yaml:"cacheTTL"`
+	Pacing          `yaml:",inline"`
+	CacheDir        string        `yaml:"cacheDir"`
+	CacheTTL        time.Duration `yaml:"cacheTTL"`
+	Fetch           FetchDef      `yaml:"fetch"`
+}
+
+// Pacing holds the block-minimizing knobs. It sits inline in the YAML, so the
+// keys stay top-level.
+type Pacing struct {
+	MinInterval     time.Duration `yaml:"minInterval"`
+	Jitter          time.Duration `yaml:"jitter"`
+	BreakerCooldown time.Duration `yaml:"breakerCooldown"`
+	MaxConcurrency  int           `yaml:"maxConcurrency"`
+	RetryBackoff    time.Duration `yaml:"retryBackoff"`
+}
+
+// FetchDef configures `sonar fetch`. PublicOnly refuses every request that
+// would reach an internal address, as the --public-only flag does.
+type FetchDef struct {
+	PublicOnly bool `yaml:"publicOnly"`
+}
+
+// FetchPublicOnly reports whether fetches must stay on public addresses:
+// the config's fetch.publicOnly, or a true $SONAR_FETCH_PUBLIC_ONLY.
+func (c *Config) FetchPublicOnly() bool {
+	if c != nil && c.Fetch.PublicOnly {
+		return true
+	}
+	on, err := strconv.ParseBool(os.Getenv("SONAR_FETCH_PUBLIC_ONLY"))
+	return err == nil && on
 }
 
 // Default returns a config with sensible defaults: the keyed APIs and scrape
@@ -45,13 +69,15 @@ type Config struct {
 // (none ships by default), and gentle pacing.
 func Default() *Config {
 	return &Config{
-		DefaultCount:    10,
-		TimeoutSeconds:  20,
-		MinInterval:     500 * time.Millisecond,
-		Jitter:          150 * time.Millisecond,
-		BreakerCooldown: 2 * time.Minute,
-		MaxConcurrency:  8,
-		RetryBackoff:    800 * time.Millisecond,
+		DefaultCount:   10,
+		TimeoutSeconds: 20,
+		Pacing: Pacing{
+			MinInterval:     500 * time.Millisecond,
+			Jitter:          150 * time.Millisecond,
+			BreakerCooldown: 2 * time.Minute,
+			MaxConcurrency:  8,
+			RetryBackoff:    800 * time.Millisecond,
+		},
 		CacheDir:        "~/.cache/sonar",
 		CacheTTL:        15 * time.Minute,
 		SearxngPriority: 9,
