@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"testing"
+
+	"github.com/go-rod/rod/lib/launcher"
+	"github.com/go-rod/rod/lib/launcher/flags"
 )
 
 func TestRodName(t *testing.T) {
@@ -39,5 +42,16 @@ func TestRodWaitNoneCondition(t *testing.T) {
 	err := r.wait(nil)
 	if err != nil {
 		t.Fatalf("expected nil for none wait condition, got %v", err)
+	}
+}
+
+func TestNewLauncherPrefersSystemBrowser(t *testing.T) {
+	bin, ok := launcher.LookPath()
+	got := newLauncher("").Get(flags.Bin)
+	if ok && got != bin {
+		t.Fatalf("launcher bin = %q, want system browser %q", got, bin)
+	}
+	if !ok && got != "" {
+		t.Fatalf("launcher bin = %q without a system browser", got)
 	}
 }
