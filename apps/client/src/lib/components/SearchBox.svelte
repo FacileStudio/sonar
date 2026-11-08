@@ -101,8 +101,8 @@
 	}}
 >
 	<label for="{listId}-input" class="sr-only">{t('search.label')}</label>
-	<div class="flex items-center gap-2 rounded-fc-pill bg-fc-field px-4 focus-within:outline focus-within:outline-2 focus-within:outline-fc-ring {large ? 'h-14' : 'h-11'}">
-		<Icon icon={icons.search} size={large ? 20 : 18} class="shrink-0 text-fc-fg-muted" />
+	<div class="flex items-center rounded-fc-pill bg-fc-field focus-within:outline focus-within:outline-2 focus-within:outline-fc-ring {large ? 'h-14 pl-5.5 pr-4 gap-3.5' : 'h-11 pl-3.5 pr-3 gap-2.5'}">
+		<Icon icon={icons.search} size={large ? 22 : 18} class="shrink-0 text-fc-fg-muted {large ? 'translate-y-0.5' : 'translate-y-px'}" />
 		<input
 			bind:this={input}
 			id="{listId}-input"
@@ -113,7 +113,7 @@
 			spellcheck="false"
 			maxlength="400"
 			placeholder={t('search.placeholder')}
-			class="h-full min-w-0 flex-1 bg-transparent outline-none placeholder:text-fc-fg-muted [&::-webkit-search-cancel-button]:appearance-none {large ? 'text-fc-md' : 'text-fc-sm'}"
+			class="h-full min-w-0 flex-1 bg-transparent p-0 outline-none placeholder:text-fc-fg-muted [&::-webkit-search-cancel-button]:appearance-none {large ? 'text-fc-md' : 'text-fc-sm'}"
 			role="combobox"
 			aria-expanded={open}
 			aria-controls="{listId}-list"
