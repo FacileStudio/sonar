@@ -37,6 +37,9 @@ architecture:
   requiredDirs: [cmd, internal]
   requiredFiles:
     "internal/config": [config.go]
+    # A server module owns HTTP and declares it in router.go, the suite's
+    # module convention. Packages with no routes live beside modules/.
+    "internal/server/modules/*": [router.go]
 
 style:
   banInit: false

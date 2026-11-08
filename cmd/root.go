@@ -42,4 +42,5 @@ func init() {
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(openCmd)
 	rootCmd.AddCommand(cacheCmd)
+	rootCmd.AddCommand(serveCmd)
 }
