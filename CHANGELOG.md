@@ -4,6 +4,8 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.15.0] - 2026-11-08
+
 ### Added
 
 - `sonar serve` runs the hosted sonar at sonar.facile.studio: sign-in with a Facile account through Registre, the JSON API (`/api/search` for web, images and news, `/api/fetch`, `/api/suggest`, `/api/usage`, `/api/bangs`), a signed and guarded image proxy at `/img`, an OpenSearch description at `/opensearch.xml` and the API reference at `/docs`.
