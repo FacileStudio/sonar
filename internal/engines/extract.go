@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -35,33 +34,11 @@ func extractTitle(body string) string {
 }
 
 func extractHTTP(ctx context.Context, rawURL string, client *http.Client) (Result, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
-	if err != nil {
-		return Result{}, fmt.Errorf("%w: %v", ErrTransient, err)
+	res, err := httpPage(ctx, rawURL, client, 2*1024*1024)
+	if err == nil && res.Status != http.StatusOK {
+		return Result{}, fmt.Errorf("%w: status %d", ErrTransient, res.Status)
 	}
-	httpc.Fingerprint(req.Header)
-	res, err := client.Do(req)
-	if err != nil {
-		return Result{}, fmt.Errorf("%w: %w", ErrTransient, err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		return Result{}, fmt.Errorf("%w: status %d", ErrTransient, res.StatusCode)
-	}
-	raw, err := io.ReadAll(io.LimitReader(res.Body, 2*1024*1024))
-	if err != nil {
-		return Result{}, fmt.Errorf("%w: read: %v", ErrTransient, err)
-	}
-	bodyStr := string(raw)
-	md, err := HTMLToMarkdown(bodyStr)
-	if err != nil {
-		return Result{}, fmt.Errorf("%w: markdown: %v", ErrTransient, err)
-	}
-	title := extractTitle(bodyStr)
-	if title == "" {
-		title = rawURL
-	}
-	return Result{Title: title, URL: rawURL, Snippet: md, Engine: "http"}, nil
+	return res, err
 }
 
 func extractRod(ctx context.Context, rawURL string, opts ExtractOptions) (Result, error) {

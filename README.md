@@ -169,6 +169,28 @@ c, err := websearch.New(websearch.Config{Keys: map[string]string{"tavily": key}}
 results, err := c.Search(ctx, "query", 5, nil)
 ```
 
+`Client.Fetch` fetches one page as markdown, with the same guard as
+`sonar fetch --public-only` turned on by default:
+
+```go
+page, err := c.Fetch(ctx, "https://example.com", websearch.FetchOptions{})
+// page.Markdown, page.FinalURL, page.Status, page.Title, page.Engine, page.Truncated
+var blocked *websearch.BlockedError
+if errors.As(err, &blocked) {
+	// blocked.Code: websearch.CodeBlockedURL, CodeBlockedInternal or CodeBlockedUnresolved
+}
+```
+
+`FetchOptions`: `Timeout` (default 30s), `MaxBytes` (default 2 MiB, caps the
+HTML read and the markdown; `Truncated` says when it cut), `Browser` (render in
+headless Chromium; rod downloads one when none is installed), `Selector` (CSS
+selector, needs `Browser`, else `ErrSelectorNeedsBrowser`), and
+`AllowInternal`. Without `Browser`, Fetch uses plain HTTP and never starts a
+browser. A non-2xx status is returned in `Page.Status`, not as an error.
+`AllowInternal: true` turns the guard off: use it only for trusted callers
+fetching trusted URLs, since a redirect can then reach loopback, private
+networks and cloud metadata.
+
 ## Exit codes
 
 `0` success. `1` error — a failing search, or a missing query.

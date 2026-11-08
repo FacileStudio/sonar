@@ -12,7 +12,10 @@ type Result struct {
 	Snippet  string
 	URL      string
 	Engine   string
-	Priority int `json:"-"`
+	Priority int    `json:"-"`
+	FinalURL string `json:"-"`
+	Status   int    `json:"-"`
+	Cut      bool   `json:"-"`
 }
 
 // Sentinel errors classify an engine failure so the dispatcher can choose
