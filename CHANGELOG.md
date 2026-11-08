@@ -4,6 +4,10 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+### Fixed
+
+- A search whose caller went away (a closed tab, an aborted request) is refunded: the refund no longer runs on the cancelled request context, and a failed refund logs its cause.
+
 ## [v0.15.0] - 2026-11-08
 
 ### Added

@@ -55,7 +55,13 @@ func (q *fakeQuota) Take(_ context.Context, _ int64, limit int64) (bool, error) 
 	q.used++
 	return true, nil
 }
-func (q *fakeQuota) Refund(context.Context, int64) error        { q.used--; return nil }
+func (q *fakeQuota) Refund(ctx context.Context, _ int64) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	q.used--
+	return nil
+}
 func (q *fakeQuota) Used(context.Context, int64) (int64, error) { return q.used, nil }
 func (q *fakeQuota) ResetsAt() time.Time                        { return time.Time{} }
 
@@ -134,5 +140,16 @@ func TestFailedSearchIsRefunded(t *testing.T) {
 	}
 	if counter.used != 0 {
 		t.Fatalf("a failed search must be refunded, used = %d", counter.used)
+	}
+}
+
+func TestAbortedSearchIsStillRefunded(t *testing.T) {
+	h := newHarness(5, nil)
+	h.instance.fail = errors.New("boom")
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, _ = h.svc.Search(ctx, 1, Query{Q: "cats", Kind: KindWeb})
+	if h.counter.used != 0 {
+		t.Fatalf("a search whose caller went away must be refunded, used = %d", h.counter.used)
 	}
 }
