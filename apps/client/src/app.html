@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			(function () {
+				var t = localStorage.getItem('sonar-theme');
+				if (t === 'dark' || t === 'light') document.documentElement.classList.add(t);
+			})();
+		</script>
+		<link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
+		<link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="Sonar" />
+		<meta name="color-scheme" content="light dark" />
+		<meta name="referrer" content="no-referrer" />
+		<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+		<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
+		<meta name="description" content="Sonar by Facile: private web search with no history. Web, images and news across several engines." />
+		<meta property="og:title" content="Sonar — private web search" />
+		<meta property="og:site_name" content="Sonar" />
+		%sveltekit.head%
+		<title>Sonar — private web search</title>
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>

@@ -60,7 +60,7 @@ func (b *Brave) Search(ctx context.Context, query string, count int) ([]Result, 
 	}
 	out := make([]Result, 0, len(parsed.Web.Results))
 	for _, r := range parsed.Web.Results {
-		out = append(out, Result{Title: r.Title, URL: r.URL, Snippet: r.Description, Engine: b.Name()})
+		out = append(out, Result{Title: Plain(r.Title), URL: r.URL, Snippet: Plain(r.Description), Engine: b.Name()})
 	}
 	return out, nil
 }

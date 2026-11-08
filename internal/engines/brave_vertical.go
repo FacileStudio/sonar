@@ -70,7 +70,7 @@ func (b *Brave) Images(ctx context.Context, query string, count int) ([]Image, e
 	out := make([]Image, 0, len(parsed.Results))
 	for _, r := range parsed.Results {
 		out = append(out, Image{
-			Title: r.Title, URL: r.URL, Thumbnail: r.Thumbnail.Src, Source: r.Source,
+			Title: Plain(r.Title), URL: r.URL, Thumbnail: r.Thumbnail.Src, Source: r.Source,
 			Width: r.Properties.Width, Height: r.Properties.Height,
 		})
 	}
@@ -86,7 +86,7 @@ func (b *Brave) News(ctx context.Context, query string, count int) ([]News, erro
 	out := make([]News, 0, len(parsed.Results))
 	for _, r := range parsed.Results {
 		out = append(out, News{
-			Title: r.Title, URL: r.URL, Snippet: r.Description, Source: r.MetaURL.Hostname,
+			Title: Plain(r.Title), URL: r.URL, Snippet: Plain(r.Description), Source: r.MetaURL.Hostname,
 			Age: r.Age, Published: r.PageAge, Thumbnail: r.Thumbnail.Src,
 		})
 	}

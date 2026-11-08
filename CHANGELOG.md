@@ -4,6 +4,25 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+
+- `sonar serve` runs the hosted sonar at sonar.facile.studio: sign-in with a Facile account through Registre, the JSON API (`/api/search` for web, images and news, `/api/fetch`, `/api/suggest`, `/api/usage`, `/api/bangs`), a signed and guarded image proxy at `/img`, an OpenSearch description at `/opensearch.xml` and the API reference at `/docs`.
+- Daily search quotas per person from the `sonar.searches_daily` plan entitlement (free plan 20 until Ardoise publishes values). An exhausted quota answers 402 with an upgrade link; a search no engine answers is refunded.
+- People can bring their own engine API keys, sealed at rest with porte's sealer; searches on them skip the quota.
+- `!bang` shortcuts: internal ones pick a tab or an engine, external ones (`!g`, `!ddg`, `!w`, ...) redirect, with a privacy note.
+- A SvelteKit web client on muse: web, images and news tabs, keyboard navigation (`/`, arrows, `j`/`k`), typing suggestions that can be turned off, settings for theme, language and own keys, and a draft of the terms of use.
+- The paid AI summary through Bulle, gated on `ai.access`, ships turned off (`SONAR_AI_SUMMARY`) until Bulle serves the route described in docs/ai-summary.md.
+- `websearch.Client.Images` and `websearch.Client.News` (Brave).
+
+### Changed
+
+- Brave results are never cached, in the CLI, the library or the server, as Brave's API terms require.
+- Brave titles and snippets come back as plain text, without the `<strong>` highlights and HTML entities.
+
+### Privacy
+
+- No query reaches a log: the request logger redacts `q`, `u`, `s` and `url`, and the compose file turns Traefik access logs off for sonar's routes.
+
 ## [v0.14.1] - 2026-11-08
 
 ### Fixed

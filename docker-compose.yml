@@ -1,0 +1,88 @@
+# sonar.facile.studio on Dokploy. Every variable the container reads is
+# forwarded here explicitly: a key set in Dokploy but missing below never
+# reaches the process.
+#
+# Traefik access logs are off for these routers. The request path carries the
+# query (/search?q=...), and sonar promises that no log holds a query.
+services:
+  sonar-db:
+    container_name: sonar-db
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: sonar
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    expose:
+      - '5432'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sonar"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  sonar-api:
+    container_name: sonar-api
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    expose:
+      - '4000'
+    networks:
+      - default
+      - dokploy-network
+    labels:
+      traefik.enable: 'true'
+      traefik.docker.network: dokploy-network
+      traefik.http.routers.sonar-web.rule: "Host(`sonar.facile.studio`)"
+      traefik.http.routers.sonar-web.entrypoints: web
+      traefik.http.routers.sonar-web.middlewares: redirect-to-https@file
+      traefik.http.routers.sonar-web.service: sonar-api
+      traefik.http.routers.sonar-web.observability.accessLogs: 'false'
+      traefik.http.routers.sonar-secure.rule: "Host(`sonar.facile.studio`)"
+      traefik.http.routers.sonar-secure.entrypoints: websecure
+      traefik.http.routers.sonar-secure.tls.certresolver: letsencrypt
+      traefik.http.routers.sonar-secure.service: sonar-api
+      traefik.http.routers.sonar-secure.observability.accessLogs: 'false'
+      traefik.http.services.sonar-api.loadbalancer.server.port: "4000"
+    environment:
+      DATABASE_URL: postgres://sonar:${POSTGRES_PASSWORD}@sonar-db:5432/sonar?sslmode=disable
+      APP_ENV: production
+      PORT: '4000'
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      TRUSTED_PROXIES: 'private,cloudflare'
+      SONAR_PUBLIC_URL: https://sonar.facile.studio
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      PORTE_TOKEN_KEY: ${PORTE_TOKEN_KEY:-}
+      SONAR_BRAVE_KEY: ${SONAR_BRAVE_KEY:-}
+      SONAR_TAVILY_KEY: ${SONAR_TAVILY_KEY:-}
+      SONAR_EXA_KEY: ${SONAR_EXA_KEY:-}
+      SONAR_PARALLEL_KEY: ${SONAR_PARALLEL_KEY:-}
+      SONAR_LINKUP_KEY: ${SONAR_LINKUP_KEY:-}
+      SONAR_FIRECRAWL_KEY: ${SONAR_FIRECRAWL_KEY:-}
+      SONAR_SERPAPI_KEY: ${SONAR_SERPAPI_KEY:-}
+      SONAR_SEARXNG: ${SONAR_SEARXNG:-}
+      SONAR_SUGGEST_URL: ${SONAR_SUGGEST_URL:-}
+      SONAR_IMAGE_KEY: ${SONAR_IMAGE_KEY:-}
+      SONAR_AI_SUMMARY: ${SONAR_AI_SUMMARY:-false}
+      BULLE_URL: ${BULLE_URL:-}
+      SONAR_BULLE_KEY: ${SONAR_BULLE_KEY:-}
+    healthcheck:
+      test: ["CMD", "/sonar", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      sonar-db:
+        condition: service_healthy
+volumes:
+  db_data:
+    name: sonar_db_data
+networks:
+  dokploy-network:
+    external: true

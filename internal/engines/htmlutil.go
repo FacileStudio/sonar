@@ -41,3 +41,9 @@ func html2text(s string) string {
 	s = html.UnescapeString(s)
 	return strings.TrimSpace(s)
 }
+
+// Plain strips markup from a provider snippet and decodes its entities, for
+// providers such as Brave that highlight matches with <strong>.
+func Plain(s string) string {
+	return strings.TrimSpace(html.UnescapeString(reTag.ReplaceAllString(s, "")))
+}
