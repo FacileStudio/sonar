@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/FacileStudio/sonar/internal/server/bangs"
@@ -129,7 +130,9 @@ func (s *Service) spend(ctx context.Context, userID int64) error {
 var errQuota = errors.New("search: daily quota exhausted")
 
 func (s *Service) refund(ctx context.Context, userID int64) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
 	if err := s.Quota.Refund(ctx, userID); err != nil {
-		s.Logger.Warn("search: failed to refund a search", slog.Int64("user", userID), slog.String("error", "refund"))
+		s.Logger.Warn("search: failed to refund a search", slog.Int64("user", userID), slog.Any("error", err))
 	}
 }
