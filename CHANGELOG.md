@@ -4,6 +4,21 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.15.2] - 2026-11-08
+
+### Added
+
+- Settings sections use Solar icons from `@facile/muse`.
+- Monochrome provider logos in the engine keys settings section.
+
+### Changed
+
+- Removed duplicate center logo and heading from the home search page.
+
+### Fixed
+
+- Authenticated users now display their Registre profile picture: OIDC picture claims are stored at sign-in, empty rows are backfilled from identities at boot, and sessions resolve identity avatar URLs.
+
 ## [v0.15.1] - 2026-11-08
 
 ### Fixed
