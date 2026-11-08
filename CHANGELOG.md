@@ -4,6 +4,12 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.15.3] - 2026-11-08
+
+### Changed
+
+- Moved the tagline ("Private web search. No history, no tracking.") directly under the search input bar on the home page.
+
 ## [v0.15.2] - 2026-11-08
 
 ### Added
