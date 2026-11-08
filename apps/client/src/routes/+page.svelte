@@ -20,12 +20,13 @@
 	<section class="flex flex-1 flex-col items-center justify-center gap-8 py-10 sm:py-20">
 		<h1 class="sr-only">Sonar</h1>
 		<div class="flex w-full max-w-2xl flex-col items-center gap-4">
-			<SearchBox large autofocus={!!session.user} />
+			<div class="w-full">
+				<SearchBox large autofocus={!!session.user} />
+			</div>
 			<p class="max-w-md text-center text-fc-sm text-fc-fg-muted">{t('shell.tagline')}</p>
 		</div>
 		{#if session.loaded && !session.user && session.features.sign_in}
 			<div class="w-full max-w-2xl"><SignInCard /></div>
 		{/if}
-		<p class="max-w-lg text-center text-fc-xs text-fc-fg-muted">{t('shell.privacyLine')}</p>
 	</section>
 </Shell>

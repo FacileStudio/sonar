@@ -94,7 +94,7 @@
 
 <form
 	role="search"
-	class="relative"
+	class="relative w-full"
 	onsubmit={(event) => {
 		event.preventDefault();
 		submit();
