@@ -31,3 +31,15 @@ type Engine interface {
 	Name() string
 	Search(ctx context.Context, query string, count int) ([]Result, error)
 }
+
+// Uncacheable is implemented by an engine whose results must never reach a
+// cache, such as Brave, whose terms forbid storing results.
+type Uncacheable interface {
+	Uncached() bool
+}
+
+// Cacheable reports whether an engine's results may be stored in a cache.
+func Cacheable(e Engine) bool {
+	u, ok := e.(Uncacheable)
+	return !ok || !u.Uncached()
+}

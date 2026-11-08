@@ -13,6 +13,10 @@ import (
 // and singleflight, caching any fresh results. Engine failures contribute
 // nothing; an error is returned only when the run must stop (cancel, throttle).
 func (d *Dispatcher) one(ctx context.Context, u *unit, query string, count int) ([]engines.Result, error) {
+	if !engines.Cacheable(u.eng) {
+		res, err := d.fetch(ctx, u, query, count)
+		return tag(res, u.prio), err
+	}
 	if hits, ok := d.cache.Get(u.eng.Name(), query, count); ok {
 		return tag(hits, u.prio), nil
 	}
@@ -34,7 +38,7 @@ func (d *Dispatcher) fetch(ctx context.Context, u *unit, query string, count int
 	}
 	res, err := d.run(ctx, u, query, count)
 	if err == nil {
-		if len(res) > 0 {
+		if len(res) > 0 && engines.Cacheable(u.eng) {
 			d.cache.Put(u.eng.Name(), query, res)
 		}
 		return res, nil
