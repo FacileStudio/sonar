@@ -7,6 +7,7 @@
 		SignInWithFacile,
 		SubscriptionSection,
 		Switch,
+		icons,
 		settingsRoute
 	} from '@facile/muse';
 	import { goto } from '$app/navigation';
@@ -20,10 +21,10 @@
 	import { setTheme, theme, type ThemeMode } from '$lib/theme.svelte';
 
 	const sections = $derived([
-		{ id: 'profile', label: t('settings.profile'), href: '/settings/profile' },
-		{ id: 'preferences', label: t('settings.preferences'), href: '/settings/preferences' },
-		{ id: 'keys', label: t('settings.keys'), href: '/settings/keys' },
-		{ id: 'subscription', label: t('settings.subscription'), href: '/settings/subscription' }
+		{ id: 'profile', label: t('settings.profile'), icon: icons.userCircle, href: '/settings/profile' },
+		{ id: 'preferences', label: t('settings.preferences'), icon: icons.settings, href: '/settings/preferences' },
+		{ id: 'keys', label: t('settings.keys'), icon: icons.key, href: '/settings/keys' },
+		{ id: 'subscription', label: t('settings.subscription'), icon: icons.card, href: '/settings/subscription' }
 	]);
 	const route = $derived(settingsRoute(page.params.section, sections));
 
