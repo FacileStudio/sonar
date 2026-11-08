@@ -4,6 +4,12 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.15.5] - 2026-11-08
+
+### Fixed
+
+- Optically aligned the search icon with placeholder text and relaxed icon-to-text spacing inside `SearchBox`.
+
 ## [v0.15.4] - 2026-11-08
 
 ### Fixed
