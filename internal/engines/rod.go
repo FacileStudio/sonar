@@ -51,6 +51,9 @@ func newLauncher(proxy string) *launcher.Launcher {
 		Set("window-size", "1920,1080").
 		Set("start-maximized").
 		Set("lang", "en-US,en")
+	if bin, ok := launcher.LookPath(); ok {
+		l = l.Bin(bin)
+	}
 	return withProxy(l, proxy)
 }
 
