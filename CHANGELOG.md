@@ -4,6 +4,16 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed
+
+- Hosted web searches call Brave, then Tavily only when Brave returns fewer than 5 results, errors or times out: 1 or 2 engines per search instead of every keyed engine. `SONAR_WEB_ENGINES`, `SONAR_WEB_ENOUGH` set the policy. CLI and library defaults are unchanged.
+- The AI summary takes only the query and finds its own sources on Tavily, Exa or Parallel (`SONAR_SUMMARY_ENGINES`), never Brave, and returns the sources it cites. It stays off until Bulle serves `POST /api/ai/summarize`.
+- The "Sonar never stores what you search" note now sits in Settings, Preferences.
+
+### Fixed
+
+- `TestGuardedBrowserRefusesInternalNavigation` holds the websocket page's load until the refusal happened, so it no longer races on slow runners.
+
 ## [v0.15.5] - 2026-11-08
 
 ### Fixed

@@ -10,6 +10,10 @@
 - Result images load through `/img`, which serves only URLs sonar signed, only from the public internet (netguard), only real images (sniffed, no SVG), capped at 5 MiB, with no cookies.
 - External `!bangs` send the query to the named site; the UI says so on `/bangs`. Typing suggestions go to DuckDuckGo without the person's identity and can be turned off in settings or with `SONAR_SUGGEST_URL=off`.
 
+## Engine policy
+
+A web search on sonar's own keys walks a chain, one engine at a time: Brave first, then Tavily only when Brave returned fewer than 5 results, errored, or took longer than 6 seconds. A search therefore calls 1 engine, 2 at most. `SONAR_WEB_ENGINES` sets the chain (`all` restores the old run on every engine at once) and `SONAR_WEB_ENOUGH` the threshold. Engines in the chain without a key are skipped; an empty chain falls back to every engine. Image and news searches call Brave only, the one engine sonar has for them. A `!bang` that names an engine, and searches on a person's own keys, run exactly what they ask. The CLI and the `websearch` library keep their own defaults.
+
 ## Quotas
 
 Every search, image search, news search and page fetch on sonar's own keys spends one search of the daily quota. The quota is the forfait entitlement `sonar.searches_daily` (a limit, `-1` unlimited) read from the Registre directory snapshot. Until Registre has served an entitlements snapshot, everyone gets the free default (20). An exhausted quota answers 402 `payment_required` with `upgrade_url`. A search no engine answers is refunded.
@@ -20,7 +24,7 @@ Proposed plan values: free 20, Pro 500, Studio 2000. They are set in Ardoise (bi
 
 ## AI summary
 
-`POST /api/summary` asks Bulle for a summary of the result page. It needs `ai.access` and is off unless `SONAR_AI_SUMMARY=true`, `BULLE_URL` and `SONAR_BULLE_KEY` are set. The Bulle route it calls does not exist yet; see [ai-summary.md](ai-summary.md).
+`POST /api/summary` takes only `{"query"}`. sonar finds the sources itself on its summary engines (Tavily, then Exa, then Parallel, never Brave) and asks Bulle to summarize them. It needs `ai.access`, counts as one search, and is off unless `SONAR_AI_SUMMARY=true`, `BULLE_URL` and `SONAR_BULLE_KEY` are set. See [ai-summary.md](ai-summary.md).
 
 ## MCP
 
@@ -40,6 +44,9 @@ Proposed plan values: free 20, Pro 500, Studio 2000. They are set in Ardoise (bi
 | `SONAR_SEARXNG` | Comma-separated SearXNG instances. |
 | `SONAR_SUGGEST_URL` | Suggestion endpoint (OpenSearch format). Default DuckDuckGo; `off` disables. |
 | `SONAR_IMAGE_KEY` | Pins the image-signing key (32+ bytes); random per boot otherwise. |
+| `SONAR_WEB_ENGINES` | The web chain, default `brave,tavily`; `all` runs every engine at once. |
+| `SONAR_WEB_ENOUGH` | Results that end a chain early, default 5. |
+| `SONAR_SUMMARY_ENGINES` | Where summary sources come from, default `tavily,exa,parallel`. `brave` is always dropped. |
 | `SONAR_AI_SUMMARY`, `BULLE_URL`, `SONAR_BULLE_KEY` | The AI summary, off by default. |
 | `TRUSTED_PROXIES` | `private,cloudflare` behind Traefik and Cloudflare. |
 

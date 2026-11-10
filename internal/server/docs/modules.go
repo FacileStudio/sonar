@@ -44,11 +44,12 @@ func summaryModule() apiref.Module {
 	errs := []apiref.Error{authError,
 		{Status: 402, Code: "payment_required", Description: "The plan does not include ai.access."},
 		{Status: 404, Code: "not_found", Description: "Summaries are not enabled on this deployment."}}
-	route := apiref.Route{Method: "POST", Path: "/summary", Summary: "Summarize results", Auth: session,
-		RequestBody: summary.Request{}, ResponseBody: summary.Response{}, Errors: errs}
+	route := apiref.Route{Method: "POST", Path: "/summary", Summary: "Summarize a query", Auth: session,
+		RequestBody: summary.Ask{}, ResponseBody: summary.Response{}, Errors: errs}
 	return apiref.Module{
-		Name:        "summary",
-		Description: "AI summary of a result page, written by Bulle. Paid plans only (ai.access).",
-		Routes:      []apiref.Route{route},
+		Name: "summary",
+		Description: "AI summary of a query, written by Bulle from sources sonar picks on its summary engines (never Brave). " +
+			"Paid plans only (ai.access); each summary counts as one search.",
+		Routes: []apiref.Route{route},
 	}
 }

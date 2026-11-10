@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/netip"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -58,9 +59,31 @@ func trapServer(t *testing.T) string {
 	})
 	mux.HandleFunc("/js", page(`<body><main>wait</main><script>location="http://169.254.169.254/latest/";</script></body>`))
 	mux.HandleFunc("/meta", page(`<meta http-equiv="refresh" content="0;url=http://private.test:`+port+`/secret"><body>x</body>`))
-	mux.HandleFunc("/ws", page(`<body><main>`+longText+`</main><script>new WebSocket("ws://127.0.0.1:`+port+`/");</script></body>`))
+	mux.HandleFunc("/ws", page(`<body><main>`+longText+`</main><script>const s = new WebSocket("ws://127.0.0.1:`+port+
+		`/"); s.onerror = s.onclose = () => fetch("/release");</script><img src="/hold"></body>`))
+	holdUntilRefused(mux)
 	mux.HandleFunc("/frame", page(`<body><main>`+longText+`</main><iframe src="http://127.0.0.1:`+port+`/secret"></iframe></body>`))
 	return "http://public.test:" + port
+}
+
+// holdUntilRefused keeps the /ws page's load event pending until the page saw
+// its websocket refused, so the guard's verdict is read after the refusal.
+func holdUntilRefused(mux *http.ServeMux) {
+	released := make(chan struct{})
+	var once sync.Once
+	mux.HandleFunc("/release", func(w http.ResponseWriter, _ *http.Request) {
+		once.Do(func() { close(released) })
+		w.WriteHeader(http.StatusNoContent)
+	})
+	mux.HandleFunc("/hold", func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-released:
+		case <-r.Context().Done():
+		case <-time.After(4 * time.Second):
+		}
+		w.Header().Set("Content-Type", "image/gif")
+		_, _ = w.Write([]byte("GIF89a\x01\x00\x01\x00\x00\x00\x00;"))
+	})
 }
 
 func extractGuarded(t *testing.T, url string, browser bool) Outcome {

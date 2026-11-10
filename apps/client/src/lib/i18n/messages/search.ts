@@ -32,10 +32,10 @@ export const search = {
 	'search.summary': ['AI summary', 'Résumé IA', 'Resumen IA', 'KI-Zusammenfassung'],
 	'search.summarize': ['Summarize with AI', 'Résumer avec l’IA', 'Resumir con IA', 'Mit KI zusammenfassen'],
 	'search.summaryNote': [
-		'Written by Bulle from the results below. Check the sources.',
-		'Écrit par Bulle à partir des résultats ci-dessous. Vérifiez les sources.',
-		'Escrito por Bulle a partir de los resultados. Comprueba las fuentes.',
-		'Von Bulle aus den Ergebnissen unten geschrieben. Prüfe die Quellen.'
+		'Written by Bulle from the sources listed above. Check them.',
+		'Écrit par Bulle à partir des sources listées ci-dessus. Vérifiez-les.',
+		'Escrito por Bulle a partir de las fuentes de arriba. Compruébalas.',
+		'Von Bulle aus den oben genannten Quellen geschrieben. Prüfe sie.'
 	],
 	'search.summaryFailed': ['The summary failed', 'Le résumé a échoué', 'El resumen falló', 'Die Zusammenfassung ist fehlgeschlagen'],
 	'search.redirecting': ['Opening {name}…', 'Ouverture de {name}…', 'Abriendo {name}…', '{name} wird geöffnet…'],

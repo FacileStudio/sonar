@@ -1,6 +1,10 @@
 # AI summary: what sonar expects from Bulle
 
-sonar holds no AI key. Its summary calls Bulle, the suite's AI hub, the same way other services call `POST /api/ai/decide`: a service key plus the person it acts for. `/api/ai/decide` only answers choice questions, so sonar needs a text route. Until Bulle ships it, `SONAR_AI_SUMMARY` stays `false`.
+sonar holds no AI key. Its summary calls Bulle, the suite's AI hub, the same way other services call `POST /api/ai/decide`: a service key plus the person it acts for. `/api/ai/decide` only answers choice questions, so sonar needs a text route. Until Bulle ships it, `SONAR_AI_SUMMARY` stays `false`. As of 2026-11-10, Bulle's main has no `/api/ai/summarize`.
+
+## Sources never come from Brave
+
+Owner decision (2026-11-08): the summary never uses Brave results. The client sends only the query (`POST /api/summary {"query": "…"}`). sonar then runs its own search on the summary chain, `SONAR_SUMMARY_ENGINES` (default `tavily,exa,parallel`, one engine at a time until 5 results are in), and sends those sources to Bulle. `brave` is removed from that list whatever the setting says, and the Brave results on the page are never sent. The answer returns the sources it cites, so the client lists them under the summary. A summary costs one search of the daily quota, refunded if no engine answers.
 
 ## Proposed route
 
@@ -18,6 +22,6 @@ Content-Type: application/json
 
 Bulle should check `ai.access` for the acting person (its `Gate.CheckAI`), cap the body (32 KiB), rate limit per caller, log usage without the query, and cite sources by their 1-based position. sonar checks `ai.access` itself first, so a free account never reaches Bulle.
 
-## Open legal point
+## Turning it on
 
-Brave's API terms forbid derivative works of search results. Whether an AI summary of Brave results is one is for the owner to decide before turning the summary on; restricting the summary to non-Brave results is the fallback.
+Once Bulle serves the route: add sonar's key hash to Bulle's `BULLE_AI_CALLERS`, set `BULLE_URL`, `SONAR_BULLE_KEY` and `SONAR_AI_SUMMARY=true` on the sonar compose, and check that at least one summary engine has a key (`summary_engines` in the boot log).
