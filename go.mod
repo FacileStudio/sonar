@@ -31,10 +31,10 @@ require (
 )
 
 require (
-	github.com/FacileStudio/porte v0.16.0
-	github.com/FacileStudio/porte/directory v0.3.0
+	github.com/FacileStudio/porte v0.18.2
+	github.com/FacileStudio/porte/directory v0.4.0
 	github.com/FacileStudio/porte/forfait v0.1.1
-	github.com/FacileStudio/tronc v0.20.0
+	github.com/FacileStudio/tronc v0.21.0
 	github.com/FacileStudio/tronc/migrate v0.1.0
 	github.com/charmbracelet/colorprofile v0.4.2 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20260205113103-524a6607adb8 // indirect

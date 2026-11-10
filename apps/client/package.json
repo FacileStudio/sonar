@@ -26,6 +26,6 @@
     "vitest": "^4.1.7"
   },
   "dependencies": {
-    "@facile/muse": "github:FacileStudio/muse#v0.16.1"
+    "@facile/muse": "github:FacileStudio/muse#v0.18.0"
   }
 }
