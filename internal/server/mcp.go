@@ -10,13 +10,15 @@ import (
 
 // newMCP builds the MCP server when sign-in is on and MCP_RESOURCE is set,
 // and nothing otherwise. The verifier runs Registre discovery here, so a
-// wrong issuer fails at boot like sign-in does.
+// wrong issuer fails at boot like sign-in does. A person's first MCP call
+// creates their account through the web login's own path, so Bulle and other
+// clients reach sonar for people who never opened it.
 func newMCP(ctx context.Context, a *app, cfg Config, version string) (*mcp.Service, error) {
 	if cfg.OIDC.Issuer == "" || cfg.MCPResource == "" {
 		return nil, nil
 	}
 	verifier, err := mcpauth.Verifier(ctx, mcpauth.Config{Issuer: cfg.OIDC.Issuer, Resource: cfg.MCPResource,
-		ScopePrefix: "sonar", Identities: a.kits.Identities, Logger: a.log})
+		ScopePrefix: "sonar", Identities: a.kits.Identities, Provision: true, Accounts: a.kits.OIDC, Logger: a.log})
 	if err != nil {
 		return nil, err
 	}
