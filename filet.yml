@@ -4,14 +4,18 @@
 #   filet check .     the rules
 #   filet roast .     the rules, with commentary
 #
-# Matches the other suite CLIs (sonde-cli, douane, etc.): fatih/cobra + the
-# canonical Go template. The limits are the published defaults of the tools
-# they come from, not numbers picked to make a count go away.
+# The suite preset, plus what a Go CLI that also serves sonar.facile.studio
+# needs: the CLI layout (cmd, internal) instead of apps/api, and cobra's
+# idiomatic `var cmd` + `init()`. Lists replace the preset's, so they are
+# restated in full.
+
+preset: facile
 
 kind: cli
 
 ignore:
   - .git
+  - node_modules
   - vendor
   - dist
   - build
@@ -19,19 +23,6 @@ ignore:
   - coverage
 
 extensions: [.go]
-
-limits:
-  fileLines: 250
-  funcsPerFile: 8
-  funcLines: 30
-  funcStatements: 25
-  lineLength: 120
-  params: 5
-  returns: 3
-  nesting: 4
-  complexity: 10
-  structFields: 12
-  interfaceMethods: 4
 
 architecture:
   requiredDirs: [cmd, internal]
@@ -44,12 +35,3 @@ architecture:
 style:
   banInit: false
   banGlobalMutable: false
-  requireDocComments: true
-  banInlineComments: true
-  banTODO: true
-  banTrailingSpace: true
-
-failOn: error
-
-disabled:
-  - gen.line.long

@@ -47,7 +47,31 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
       - run: bun install --frozen-lockfile
       - run: bun run check
       - run: bun run test
       - run: bun run build
+
+  douane:
+    runs-on: ubuntu-latest
+    env:
+      DOUANE_VERSION: 0.7.1
+      DOUANE_SHA256: 4f82ffbe1dc02aaf2ea0e7952c35066f9bef486a85fe5e21c53b253c45f33e57
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: install douane
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -eu
+          archive="douane_${DOUANE_VERSION}_linux_amd64.tar.gz"
+          curl -fsSLO "https://github.com/FacileStudio/douane/releases/download/v${DOUANE_VERSION}/$archive"
+          echo "${DOUANE_SHA256}  $archive" | sha256sum -c -
+          tar xzf "$archive" douane
+          ./douane --version
+
+      - name: scan
+        run: |
+          "$RUNNER_TEMP/douane" scan -fail critical -scope prod .

@@ -17,9 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: FacileStudio/filet@v0.14.0
+      - uses: FacileStudio/filet@v0.19.1
         with:
-          version: v0.14.0
+          version: v0.19.1
           fail-on: error
           # The run is always reported and the provider decides what deserves an
           # alert, so that policy lives in one place instead of in every fork's

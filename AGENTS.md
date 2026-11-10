@@ -8,9 +8,11 @@ This is a Go CLI (`sonar`) — a multi-engine web search tool. It follows the Fa
 go build ./...
 go test ./...
 filet check .
+filet gate .      # the pre-push gate: format, filet, vet, staticcheck, tests, douane
 ```
 
-Go 1.26 is required (`go.mod`).
+Go 1.26.10 or later is required (`go.mod`). The client needs bun 1.4 or later
+(`mise.toml`): its `bun.lock` is lockfile version 2, which bun 1.3 cannot read.
 
 ## Architecture
 
