@@ -16,6 +16,19 @@
 		location.assign('/');
 	}
 
+	let invitations = $state<{ count: number; href: string } | null>(null);
+
+	$effect(() => {
+		if (!session.user) {
+			invitations = null;
+			return;
+		}
+		api
+			.invitations()
+			.then((answer) => (invitations = answer?.href ? { count: answer.count, href: answer.href } : null))
+			.catch(() => (invitations = null));
+	});
+
 	const menu = $derived({
 		subscription: { href: 'https://sso.facile.studio/spaces' },
 		settingsHref: '/settings',
@@ -23,7 +36,8 @@
 		onSignOut: signOut,
 		onLocaleChange: rememberLocale,
 		theme: theme.mode,
-		onThemeChange: (next: string) => setTheme(next as ThemeMode)
+		onThemeChange: (next: string) => setTheme(next as ThemeMode),
+		invitations
 	});
 
 	const columns = $derived([

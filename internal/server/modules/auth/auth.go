@@ -7,10 +7,12 @@ import (
 	"context"
 	"database/sql"
 	"log/slog"
+	"net/http"
 	"strings"
 
 	"github.com/FacileStudio/porte"
 	"github.com/FacileStudio/porte/directory"
+	"github.com/FacileStudio/porte/kit"
 	"github.com/FacileStudio/porte/oidc"
 	portepg "github.com/FacileStudio/porte/pg"
 	"github.com/FacileStudio/porte/session"
@@ -24,15 +26,17 @@ type Config struct {
 	Sealer       *portepg.TokenSealer
 }
 
-// Kits is porte, assembled.
+// Kits is porte, assembled. Invitations is porte/kit's pending-invitations
+// handler for the user menu, nil without an issuer.
 type Kits struct {
-	DB         *sql.DB
-	Sessions   *session.Manager
-	OIDC       *oidc.Kit
-	Syncer     *directory.Syncer
-	Deletions  *directory.Deletions
-	Identities porte.IdentityStore
-	Issuer     string
+	DB          *sql.DB
+	Sessions    *session.Manager
+	OIDC        *oidc.Kit
+	Syncer      *directory.Syncer
+	Deletions   *directory.Deletions
+	Invitations http.Handler
+	Identities  porte.IdentityStore
+	Issuer      string
 }
 
 type pictureUsers struct {
@@ -66,7 +70,8 @@ func backfillPictures(ctx context.Context, db *sql.DB, issuer string) (int64, er
 }
 
 // New builds sessions and runs OIDC discovery. apply receives every directory
-// snapshot. Without an issuer there is no Syncer and no Deletions.
+// snapshot. Without an issuer there is no Syncer, no Deletions and no
+// Invitations.
 func New(ctx context.Context, db *sql.DB, cfg Config, apply func(context.Context, directory.Snapshot) error,
 	logger *slog.Logger) (*Kits, error) {
 	store := portepg.New(db, portepg.WithTokenSealer(cfg.Sealer))
@@ -77,24 +82,34 @@ func New(ctx context.Context, db *sql.DB, cfg Config, apply func(context.Context
 	if err != nil {
 		return nil, err
 	}
-	kit, err := oidc.New(ctx, cfg.Porte, oidc.Deps{
+	oidcKit, err := oidc.New(ctx, cfg.Porte, oidc.Deps{
 		Users: pictureUsers{UserStore: store.Users()}, Identities: store.Identities(), Sessions: sessions, Codes: store.LoginCodes(), Logger: logger,
 	})
 	if err != nil {
 		return nil, err
 	}
-	kits := &Kits{DB: db, Sessions: sessions, OIDC: kit, Identities: store.Identities(), Issuer: cfg.Porte.Issuer}
-	if cfg.Porte.Issuer != "" {
-		if strings.HasPrefix(cfg.Porte.Issuer, "https://") {
-			if _, err := backfillPictures(ctx, db, cfg.Porte.Issuer); err != nil && logger != nil {
-				logger.Warn("backfill pictures failed", slog.Any("error", err))
-			}
-		}
-		client := directory.Client{Issuer: cfg.Porte.Issuer, ClientID: cfg.ClientID, ClientSecret: cfg.ClientSecret}
-		kits.Syncer = &directory.Syncer{Client: client, Apply: apply, Logger: logger}
-		kits.Deletions = newDeletions(db, store, client, logger)
+	kits := &Kits{DB: db, Sessions: sessions, OIDC: oidcKit, Identities: store.Identities(), Issuer: cfg.Porte.Issuer}
+	if cfg.Porte.Issuer == "" {
+		return kits, nil
 	}
-	return kits, nil
+	if _, err := backfillPictures(ctx, db, cfg.Porte.Issuer); err != nil && logger != nil {
+		logger.Warn("backfill pictures failed", slog.Any("error", err))
+	}
+	return kits, kits.linkRegistre(store, cfg, apply, logger)
+}
+
+func (k *Kits) linkRegistre(store *portepg.Store, cfg Config, apply func(context.Context, directory.Snapshot) error,
+	logger *slog.Logger) error {
+	client := directory.Client{Issuer: cfg.Porte.Issuer, ClientID: cfg.ClientID, ClientSecret: cfg.ClientSecret}
+	k.Syncer = &directory.Syncer{Client: client, Apply: apply, Logger: logger}
+	k.Deletions = newDeletions(k.DB, store, client, logger)
+	invitations, err := kit.NewInvitations(kit.InvitationsConfig{Directory: client, Identities: store.Identities(),
+		Logger: logger})
+	if err != nil {
+		return err
+	}
+	k.Invitations = invitations
+	return nil
 }
 
 func resealInBackground(ctx context.Context, store *portepg.Store, logger *slog.Logger) {

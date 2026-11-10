@@ -44,6 +44,7 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export const api = {
 	session: () => call<{ user: SessionUser | null; features: Features }>('/auth/session'),
+	invitations: () => call<{ count: number; href?: string }>('/me/invitations'),
 	logout: () => call<void>('/auth/logout', { method: 'POST' }),
 	search: (q: string, kind: Kind, signal?: AbortSignal) =>
 		call<SearchResponse>(`/search?${new URLSearchParams({ q, type: kind })}`, { signal }),

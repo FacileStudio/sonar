@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/FacileStudio/porte"
+	"github.com/FacileStudio/porte/kit"
 	"github.com/FacileStudio/sonar/internal/server/modules/keys"
 	"github.com/FacileStudio/sonar/internal/server/modules/summary"
 	"github.com/FacileStudio/tronc/apiref"
@@ -19,6 +20,7 @@ func authModule() apiref.Module {
 			{Method: "POST", Path: porte.RouteLogout, Summary: "Sign out", Auth: session},
 			{Method: "GET", Path: "/auth/session", Summary: "The signed-in user, or null, and the enabled features",
 				Auth: "public"},
+			kit.InvitationsRoute(),
 		},
 	}
 }

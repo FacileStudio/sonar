@@ -7,6 +7,7 @@ import (
 
 	"github.com/FacileStudio/porte"
 	"github.com/FacileStudio/porte/directory"
+	"github.com/FacileStudio/porte/kit"
 	"github.com/FacileStudio/tronc/httpjson"
 	"github.com/go-chi/chi/v5"
 )
@@ -30,12 +31,15 @@ type sessionResponse struct {
 	Features Features     `json:"features"`
 }
 
-// RegisterRoutes mounts porte's routes and GET /auth/session under the API
-// router.
+// RegisterRoutes mounts porte's routes, GET /auth/session and, with an
+// issuer, porte/kit's GET /me/invitations under the API router.
 func RegisterRoutes(router chi.Router, kits *Kits, features Features) {
 	kits.Sessions.Mount(router)
 	kits.OIDC.Mount(router)
 	router.With(kits.Sessions.Optional).Get("/auth/session", handleSession(kits.DB, features, kits.Issuer))
+	if kits.Invitations != nil {
+		router.With(kits.Sessions.RequireAuth).Method(http.MethodGet, kit.InvitationsPath, kits.Invitations)
+	}
 }
 
 // MountRegistre mounts Registre's directory nudge and deletion notices on the
