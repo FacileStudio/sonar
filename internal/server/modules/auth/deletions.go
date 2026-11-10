@@ -31,10 +31,17 @@ func (s deletionState) Save(ctx context.Context, state []byte) error {
 	return err
 }
 
+// eraseAccount deletes the porte user behind (provider, subject). Every sonar
+// table that holds a person's data (search_usage, engine_keys, sessions,
+// identities, login codes) references porte_users with ON DELETE CASCADE, so
+// one statement erases it all, sealed engine keys included. The provider
+// matches with or without a trailing slash, as porte/kit does, because the
+// configured issuer and the stored rows have used both spellings.
 func eraseAccount(db *sql.DB) func(ctx context.Context, provider, subject string) error {
 	return func(ctx context.Context, provider, subject string) error {
 		_, err := db.ExecContext(ctx, `DELETE FROM porte_users WHERE id IN (
-			SELECT user_id FROM porte_identities WHERE provider = $1 AND subject = $2)`, provider, subject)
+			SELECT user_id FROM porte_identities WHERE rtrim(provider, '/') = rtrim($1, '/') AND subject = $2)`,
+			provider, subject)
 		return err
 	}
 }
