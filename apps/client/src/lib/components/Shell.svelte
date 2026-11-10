@@ -6,7 +6,7 @@
 	import { SONAR_ICON } from '$lib/icons';
 	import { session } from '$lib/session.svelte';
 	import { rememberLocale, t } from '$lib/i18n/index.svelte';
-	import { setTheme, theme, type ThemeMode } from '$lib/theme.svelte';
+	import { theme, type ThemeMode } from '$lib/theme.svelte';
 
 	let { search, children, wide = false }: { search?: Snippet; children: Snippet; wide?: boolean } = $props();
 
@@ -36,7 +36,7 @@
 		onSignOut: signOut,
 		onLocaleChange: rememberLocale,
 		theme: theme.mode,
-		onThemeChange: (next: string) => setTheme(next as ThemeMode),
+		onThemeChange: (next: string) => theme.set(next as ThemeMode),
 		invitations
 	});
 

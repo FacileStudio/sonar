@@ -18,7 +18,7 @@
 	import { prefs, setSuggest } from '$lib/prefs.svelte';
 	import { session } from '$lib/session.svelte';
 	import { rememberLocale, t } from '$lib/i18n/index.svelte';
-	import { setTheme, theme, type ThemeMode } from '$lib/theme.svelte';
+	import { theme, type ThemeMode } from '$lib/theme.svelte';
 
 	const sections = $derived([
 		{ id: 'profile', label: t('settings.profile'), icon: icons.userCircle, href: '/settings/profile' },
@@ -57,7 +57,7 @@
 				{:else if current === 'preferences'}
 					<PreferencesSection
 						theme={theme.mode}
-						onThemeChange={(next) => setTheme(next as ThemeMode)}
+						onThemeChange={(next) => theme.set(next as ThemeMode)}
 						onLocaleChange={rememberLocale}
 					>
 						{#if session.features.suggest}

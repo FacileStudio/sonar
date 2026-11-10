@@ -12,6 +12,6 @@ export default defineConfig({
 	 * Excluding the package leaves it to the svelte plugin, which is what compiles it.
 	 */
 	optimizeDeps: {
-		exclude: ['@facile/muse']
+		exclude: ['@facile/muse', '@facile/client']
 	}
 });

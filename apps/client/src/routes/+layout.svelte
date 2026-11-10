@@ -4,7 +4,7 @@
 	import { provideLocale, Toaster } from '@facile/muse';
 	import { registerAppIcons } from '$lib/icons';
 	import { loadSession } from '$lib/session.svelte';
-	import { setTheme, theme } from '$lib/theme.svelte';
+	import { theme } from '$lib/theme.svelte';
 	import { bindLocale, localeSource } from '$lib/i18n/index.svelte';
 
 	let { children } = $props();
@@ -14,7 +14,7 @@
 	registerAppIcons();
 
 	if (browser) {
-		setTheme(theme.mode);
+		theme.restore();
 		loadSession();
 	}
 </script>
