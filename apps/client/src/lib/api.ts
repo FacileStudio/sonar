@@ -54,8 +54,11 @@ export const api = {
 	saveKey: (engine: string, key: string) =>
 		call<void>(`/keys/${encodeURIComponent(engine)}`, { method: 'PUT', body: JSON.stringify({ key }) }),
 	removeKey: (engine: string) => call<void>(`/keys/${encodeURIComponent(engine)}`, { method: 'DELETE' }),
-	summary: (query: string, sources: { title: string; url: string; snippet: string }[]) =>
-		call<{ summary: string; model?: string }>('/summary', { method: 'POST', body: JSON.stringify({ query, sources }) })
+	summary: (query: string) =>
+		call<{ summary: string; model?: string; sources?: { title: string; url: string }[] }>('/summary', {
+			method: 'POST',
+			body: JSON.stringify({ query })
+		})
 };
 
 /** The sign-in entry point. */

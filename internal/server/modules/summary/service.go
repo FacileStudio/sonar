@@ -24,16 +24,23 @@ type Source struct {
 	Snippet string `json:"snippet"`
 }
 
-// Request is the body of POST /api/summary.
+// Ask is the body of POST /api/summary: only the query. sonar picks the
+// sources itself, from the engines its summary chain allows.
+type Ask struct {
+	Query string `json:"query"`
+}
+
+// Request is what the Writer summarizes.
 type Request struct {
 	Query   string   `json:"query"`
 	Sources []Source `json:"sources"`
 }
 
-// Response is the summary, citing sources by their 1-based position.
+// Response is the summary, citing Sources by their 1-based position.
 type Response struct {
-	Summary string `json:"summary"`
-	Model   string `json:"model,omitempty"`
+	Summary string   `json:"summary"`
+	Model   string   `json:"model,omitempty"`
+	Sources []Source `json:"sources,omitempty"`
 }
 
 // Access answers whether a user's plan includes ai.access.
@@ -46,11 +53,15 @@ type Writer interface {
 	Summarize(ctx context.Context, actingFor string, req Request) (Response, error)
 }
 
+// Sources finds the results a summary may cite, spending the user's quota.
+type Sources func(ctx context.Context, userID int64, query string, count int) ([]Source, error)
+
 // Service gates and runs summaries. A nil Writer means the feature is off.
 type Service struct {
-	DB     *sql.DB
-	Access Access
-	Writer Writer
+	DB      *sql.DB
+	Access  Access
+	Writer  Writer
+	Sources Sources
 }
 
 func (s *Service) handle(w http.ResponseWriter, r *http.Request) {
@@ -63,12 +74,13 @@ func (s *Service) handle(w http.ResponseWriter, r *http.Request) {
 		httpjson.WriteError(w, err)
 		return
 	}
-	var body Request
-	if err := httpjson.DecodeJSONLimit(w, r, &body, 32<<10); err != nil {
+	var ask Ask
+	if err := httpjson.DecodeJSONLimit(w, r, &ask, 4<<10); err != nil {
 		httpjson.WriteError(w, err)
 		return
 	}
-	if err := clean(&body); err != nil {
+	body, err := s.gather(r.Context(), identity.UserID, ask)
+	if err != nil {
 		httpjson.WriteError(w, err)
 		return
 	}
@@ -90,24 +102,38 @@ func (s *Service) run(ctx context.Context, userID int64, body Request) (Response
 	if err != nil {
 		return Response{}, troncerrors.Unavailable("the summary could not be written; try again")
 	}
+	response.Sources = body.Sources
 	return response, nil
 }
 
-func clean(body *Request) error {
-	body.Query = strings.TrimSpace(body.Query)
-	if body.Query == "" || utf8.RuneCountInString(body.Query) > 400 {
-		return troncerrors.Invalid("query must be 1 to 400 characters")
+func (s *Service) gather(ctx context.Context, userID int64, ask Ask) (Request, error) {
+	query := strings.TrimSpace(ask.Query)
+	if query == "" || utf8.RuneCountInString(query) > 400 {
+		return Request{}, troncerrors.Invalid("query must be 1 to 400 characters")
 	}
-	if len(body.Sources) == 0 || len(body.Sources) > maxSources {
-		return troncerrors.Invalid("send between 1 and 10 sources")
+	found, err := s.Sources(ctx, userID, query, maxSources)
+	if err != nil {
+		return Request{}, err
 	}
-	for i := range body.Sources {
-		if !strings.HasPrefix(body.Sources[i].URL, "https://") && !strings.HasPrefix(body.Sources[i].URL, "http://") {
-			return troncerrors.Invalid("every source needs an http or https url")
+	sources := clean(found)
+	if len(sources) == 0 {
+		return Request{}, troncerrors.NotFound("no source was found to summarize")
+	}
+	return Request{Query: query, Sources: sources}, nil
+}
+
+func clean(found []Source) []Source {
+	out := make([]Source, 0, min(len(found), maxSources))
+	for _, source := range found {
+		if !strings.HasPrefix(source.URL, "https://") && !strings.HasPrefix(source.URL, "http://") {
+			continue
 		}
-		if utf8.RuneCountInString(body.Sources[i].Snippet) > maxSnippet {
-			body.Sources[i].Snippet = string([]rune(body.Sources[i].Snippet)[:maxSnippet])
+		if utf8.RuneCountInString(source.Snippet) > maxSnippet {
+			source.Snippet = string([]rune(source.Snippet)[:maxSnippet])
+		}
+		if out = append(out, source); len(out) == maxSources {
+			break
 		}
 	}
-	return nil
+	return out
 }

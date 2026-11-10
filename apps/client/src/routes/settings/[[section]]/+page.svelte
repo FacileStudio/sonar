@@ -66,6 +66,7 @@
 							</SettingsRow>
 						{/if}
 					</PreferencesSection>
+					<p class="mt-4 text-fc-xs text-fc-fg-muted">{t('shell.privacyLine')}</p>
 				{:else if current === 'keys'}
 					<KeysPanel />
 				{:else if current === 'subscription'}

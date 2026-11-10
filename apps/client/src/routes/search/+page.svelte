@@ -125,7 +125,7 @@
 				</section>
 				<aside class="flex flex-col gap-4">
 					{#if session.features.summary && response.web?.length}
-						<Summary query={response.query} results={response.web} />
+						<Summary query={response.query} />
 					{/if}
 					<p class="hidden text-fc-xs text-fc-fg-muted lg:block">{t('search.keyboardHint')}</p>
 					<p class="text-fc-xs text-fc-fg-muted">{t('shell.poweredBy')}</p>

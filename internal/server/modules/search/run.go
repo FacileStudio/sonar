@@ -14,7 +14,7 @@ const searchTimeout = 20 * time.Second
 
 var errNoResults = errors.New("search: no results")
 
-func (s *Service) run(ctx context.Context, engines Engines, q Query) (Response, error) {
+func (s *Service) run(ctx context.Context, engines Engines, q Query, own bool) (Response, error) {
 	ctx, cancel := context.WithTimeout(ctx, searchTimeout)
 	defer cancel()
 	response := Response{Query: q.Q, Kind: q.Kind}
@@ -25,13 +25,19 @@ func (s *Service) run(ctx context.Context, engines Engines, q Query) (Response, 
 	case KindNews:
 		response.News, err = s.news(ctx, engines, q)
 	default:
-		response.Web, err = web(ctx, engines, q)
+		response.Web, err = s.web(ctx, engines, q, own)
 	}
 	return response, engineError(err)
 }
 
-func web(ctx context.Context, engines Engines, q Query) ([]WebResult, error) {
-	hits, err := engines.Search(ctx, q.Q, q.Count, q.Engines)
+func (s *Service) web(ctx context.Context, engines Engines, q Query, own bool) ([]WebResult, error) {
+	var hits []websearch.Result
+	var err error
+	if own || len(q.Engines) > 0 || len(s.Web.Engines) == 0 {
+		hits, err = engines.Search(ctx, q.Q, q.Count, q.Engines)
+	} else {
+		hits, err = s.Web.search(ctx, engines, q.Q, q.Count)
+	}
 	out := make([]WebResult, 0, len(hits))
 	for _, h := range hits {
 		out = append(out, WebResult{Title: h.Title, URL: h.URL, Snippet: h.Snippet, Engine: h.Engine})
@@ -67,6 +73,10 @@ func engineError(err error) error {
 	switch {
 	case err == nil:
 		return nil
+	case errors.Is(err, errNoResults):
+		return errNoResults
+	case errors.Is(err, errEmptyChain):
+		return troncerrors.Unavailable("no engine serves this right now")
 	case errors.Is(err, websearch.ErrNoEngines), errors.Is(err, websearch.ErrNoVertical):
 		return troncerrors.Unavailable("no engine serves this tab right now")
 	case strings.Contains(err.Error(), "no engine returned results"):

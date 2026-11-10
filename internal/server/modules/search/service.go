@@ -20,6 +20,8 @@ const maxQuery = 400
 // of their daily quota on sonar's own keys.
 type Service struct {
 	Instance Engines
+	Web      Chain
+	Sources  Chain
 	ForKeys  func(keys map[string]string) (Engines, error)
 	Plans    Plans
 	Quota    Quota
@@ -56,7 +58,7 @@ func (s *Service) Search(ctx context.Context, userID int64, q Query) (Response, 
 			return Response{}, err
 		}
 	}
-	response, err := s.run(ctx, engines, q)
+	response, err := s.run(ctx, engines, q, own)
 	if err != nil && !own {
 		s.refund(ctx, userID)
 	}

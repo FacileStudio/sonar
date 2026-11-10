@@ -12,12 +12,21 @@ import (
 
 	"github.com/FacileStudio/porte"
 	portepg "github.com/FacileStudio/porte/pg"
+	"github.com/FacileStudio/sonar/internal/server/modules/search"
 	troncenv "github.com/FacileStudio/tronc/env"
 )
 
 // instanceEngines are the keyed engines sonar runs on its own keys, each read
 // from SONAR_<NAME>_KEY.
 var instanceEngines = []string{"brave", "exa", "firecrawl", "linkup", "parallel", "serpapi", "tavily"}
+
+// Engines are sonar's own engines and the policy it runs them under.
+type Engines struct {
+	Keys    map[string]string
+	Searxng []string
+	Web     search.Chain
+	Sources search.Chain
+}
 
 // Config is the process configuration.
 type Config struct {
@@ -26,8 +35,7 @@ type Config struct {
 	OIDC         porte.Config
 	ClientSecret string
 	Sealer       *portepg.TokenSealer
-	Keys         map[string]string
-	Searxng      []string
+	Engines      Engines
 	SuggestURL   string
 	ImageKey     []byte
 	Summary      bool
@@ -49,12 +57,15 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	engines, err := loadEngines()
+	if err != nil {
+		return Config{}, err
+	}
 	cfg := Config{
+		Engines:    engines,
 		Core:       core,
 		PublicURL:  strings.TrimSuffix(troncenv.String("SONAR_PUBLIC_URL", "http://localhost:4000"), "/"),
 		Sealer:     sealer,
-		Keys:       engineKeys(),
-		Searxng:    troncenv.List("SONAR_SEARXNG"),
 		SuggestURL: suggestURL(troncenv.String("SONAR_SUGGEST_URL", "")),
 		ImageKey:   []byte(troncenv.String("SONAR_IMAGE_KEY", "")),
 		Summary:    summary,
@@ -72,6 +83,31 @@ func engineKeys() map[string]string {
 		}
 	}
 	return keys
+}
+
+// loadEngines reads the keys and the hosted engine policy. SONAR_WEB_ENGINES
+// is the web chain, brave then tavily by default, or "all" for every engine
+// at once. SONAR_SUMMARY_ENGINES is where summary sources come from, never
+// brave. SONAR_WEB_ENOUGH is how many results end a chain early.
+func loadEngines() (Engines, error) {
+	enough, err := troncenv.Int("SONAR_WEB_ENOUGH", 5)
+	if err != nil {
+		return Engines{}, err
+	}
+	web := search.Chain{Engines: listOr("SONAR_WEB_ENGINES", "brave", "tavily"), Enough: enough}
+	if len(web.Engines) == 1 && web.Engines[0] == "all" {
+		web.Engines = nil
+	}
+	sources := search.Chain{Engines: listOr("SONAR_SUMMARY_ENGINES", "tavily", "exa", "parallel"), Enough: enough}
+	return Engines{Keys: engineKeys(), Searxng: troncenv.List("SONAR_SEARXNG"), Web: web,
+		Sources: sources.Without("brave")}, nil
+}
+
+func listOr(key string, fallback ...string) []string {
+	if list := troncenv.List(key); len(list) > 0 {
+		return list
+	}
+	return fallback
 }
 
 func suggestURL(value string) string {
