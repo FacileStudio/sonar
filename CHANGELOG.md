@@ -4,6 +4,10 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed
+
+- Licensed under the GNU Affero General Public License v3.0 only (`AGPL-3.0-only`). See `LICENSE`.
+
 ## [v0.16.1] - 2026-11-10
 
 ### Changed

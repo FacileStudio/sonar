@@ -198,3 +198,7 @@ networks and cloud metadata.
 ## Exit codes
 
 `0` success. `1` error — a failing search, or a missing query.
+
+## License
+
+sonar is licensed under the GNU Affero General Public License v3.0 only (`AGPL-3.0-only`); see [LICENSE](LICENSE). A commercial license is available from Facile Studio for use that cannot meet the AGPL's terms.
