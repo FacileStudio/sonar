@@ -4,6 +4,8 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.16.1] - 2026-11-10
+
 ### Changed
 
 - A person's first call to `/mcp` creates their sonar account (porte v0.16.0, mcpauth v0.2.0 provisioning), the way a first web sign-in does. Before, a Registre user who had never opened sonar got `401 invalid_token`, which kept Bulle's users from searching through sonar.
