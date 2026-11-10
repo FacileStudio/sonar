@@ -4,6 +4,8 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.15.6] - 2026-11-10
+
 ### Changed
 
 - Hosted web searches call Brave, then Tavily only when Brave returns fewer than 5 results, errors or times out: 1 or 2 engines per search instead of every keyed engine. `SONAR_WEB_ENGINES`, `SONAR_WEB_ENOUGH` set the policy. CLI and library defaults are unchanged.
