@@ -44,6 +44,10 @@ func Run(ctx context.Context, opts Options) int {
 		log.Error("failed to assemble the server", slog.Any("error", err))
 		return 1
 	}
+	if app.mcp, err = newMCP(ctx, app, cfg, opts.Version); err != nil {
+		log.Error("failed to build the mcp server", slog.Any("error", err))
+		return 1
+	}
 	app.background(ctx)
 	return serve(ctx, cfg.Port, buildRouter(app, cfg, opts, db), log)
 }

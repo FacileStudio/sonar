@@ -28,7 +28,14 @@ Proposed plan values: free 20, Pro 500, Studio 2000. They are set in Ardoise (bi
 
 ## MCP
 
-`/mcp` is reserved at the root, next to `/api`, and will reuse the same search service. Owner decision (2026-11-08): MCP access is free for every account, third-party agents included, so `/mcp` must never be plan-gated. Searches made through it still spend the search quota.
+`POST /mcp` is the remote MCP server (spec 2026-07-28, stateless, on tronc/mcp). Add `https://sonar.facile.studio/mcp` to any MCP client: it signs in through Registre and gets a token bound to that URL with the one scope `sonar.read`. The RFC 9728 metadata is at `/.well-known/oauth-protected-resource/mcp`. It is on when `OIDC_ISSUER` and `MCP_RESOURCE` are set.
+
+| Tool | What it does |
+|---|---|
+| `sonar_search` | `query`, `kind` (web, images, news), `count` (1 to 20). `engines` only for a user with their own keys. Queries are taken literally: no `!bang`. |
+| `sonar_fetch` | `url`, through the public-only guard, as markdown. `offset` and `max_length` (default 30000, at most 60000 bytes) page through long pages; `next_offset` says where to read on. |
+
+Both tools are read-only and open-world. Every call spends one search of the daily quota, like the JSON API; an exhausted quota is an `isError` result naming the upgrade page. Owner decision (2026-11-08): MCP access is free for every account, third-party agents included, so `/mcp` is never plan-gated beyond that quota. The request logger records `POST /mcp`, never the body, and tronc/mcp audits only write tools, of which sonar has none. A Registre user must have signed in to sonar once before their MCP token resolves to an account.
 
 ## Settings
 
@@ -48,6 +55,7 @@ Proposed plan values: free 20, Pro 500, Studio 2000. They are set in Ardoise (bi
 | `SONAR_WEB_ENOUGH` | Results that end a chain early, default 5. |
 | `SONAR_SUMMARY_ENGINES` | Where summary sources come from, default `tavily,exa,parallel`. `brave` is always dropped. |
 | `SONAR_AI_SUMMARY`, `BULLE_URL`, `SONAR_BULLE_KEY` | The AI summary, off by default. |
+| `MCP_RESOURCE` | The MCP server's canonical URL, as Registre's seed declares it. Empty turns `/mcp` off. |
 | `TRUSTED_PROXIES` | `private,cloudflare` behind Traefik and Cloudflare. |
 
 Registre calls `POST /api/registre/sync` (directory nudge, carries entitlements) and `POST /api/registre/deletions` (GDPR erasure).

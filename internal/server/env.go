@@ -2,8 +2,8 @@
 // with porte sign-in against Registre, the JSON search API, the image proxy,
 // per-user daily quotas from plan entitlements and the SvelteKit client.
 //
-// The router keeps the root free for /mcp, which a later release mounts next
-// to /api with the same search service.
+// /mcp serves the same search service to MCP clients, behind Registre
+// access tokens bound to MCP_RESOURCE.
 package server
 
 import (
@@ -41,6 +41,7 @@ type Config struct {
 	Summary      bool
 	BulleURL     string
 	BulleKey     string
+	MCPResource  string
 }
 
 // Load reads and validates the environment.
@@ -62,15 +63,16 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	cfg := Config{
-		Engines:    engines,
-		Core:       core,
-		PublicURL:  strings.TrimSuffix(troncenv.String("SONAR_PUBLIC_URL", "http://localhost:4000"), "/"),
-		Sealer:     sealer,
-		SuggestURL: suggestURL(troncenv.String("SONAR_SUGGEST_URL", "")),
-		ImageKey:   []byte(troncenv.String("SONAR_IMAGE_KEY", "")),
-		Summary:    summary,
-		BulleURL:   troncenv.String("BULLE_URL", ""),
-		BulleKey:   troncenv.String("SONAR_BULLE_KEY", ""),
+		Engines:     engines,
+		Core:        core,
+		PublicURL:   strings.TrimSuffix(troncenv.String("SONAR_PUBLIC_URL", "http://localhost:4000"), "/"),
+		Sealer:      sealer,
+		SuggestURL:  suggestURL(troncenv.String("SONAR_SUGGEST_URL", "")),
+		ImageKey:    []byte(troncenv.String("SONAR_IMAGE_KEY", "")),
+		Summary:     summary,
+		BulleURL:    troncenv.String("BULLE_URL", ""),
+		BulleKey:    troncenv.String("SONAR_BULLE_KEY", ""),
+		MCPResource: troncenv.String("MCP_RESOURCE", ""),
 	}
 	return cfg, cfg.loadOIDC()
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/FacileStudio/sonar/internal/server/modules/auth"
 	"github.com/FacileStudio/sonar/internal/server/modules/img"
 	"github.com/FacileStudio/sonar/internal/server/modules/keys"
+	"github.com/FacileStudio/sonar/internal/server/modules/mcp"
 	"github.com/FacileStudio/sonar/internal/server/modules/opensearch"
 	"github.com/FacileStudio/sonar/internal/server/modules/search"
 	"github.com/FacileStudio/sonar/internal/server/modules/summary"
@@ -19,9 +20,9 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// buildRouter lays out the tree: /health, /version, /docs, /api, /img,
-// /opensearch.xml, /search and the client. /mcp is left free for the MCP
-// server a later release mounts beside /api.
+// buildRouter lays out the tree: /health, /version, /docs, /api, /mcp and
+// its metadata when the MCP server is on, /img, /opensearch.xml, /search and
+// the client.
 func buildRouter(a *app, cfg Config, opts Options, db *sql.DB) chi.Router {
 	clientDir := spa.DirFromEnv()
 	router := httpx.NewRouter(httpx.Config{
@@ -41,6 +42,9 @@ func buildRouter(a *app, cfg Config, opts Options, db *sql.DB) chi.Router {
 		keys.RegisterRoutes(r, a.ring, requireAuth)
 		summary.RegisterRoutes(r, a.summary, requireAuth, userKey)
 	})
+	if a.mcp != nil {
+		mcp.RegisterRoutes(router, a.mcp)
+	}
 	img.RegisterRoutes(router, img.NewProxy(a.signer), requireAuth)
 	client := clientHandler(clientDir)
 	opensearch.RegisterRoutes(router, cfg.PublicURL, client)
