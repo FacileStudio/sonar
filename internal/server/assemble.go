@@ -12,6 +12,7 @@ import (
 	"github.com/FacileStudio/sonar/internal/server/imgsig"
 	"github.com/FacileStudio/sonar/internal/server/keyring"
 	"github.com/FacileStudio/sonar/internal/server/modules/auth"
+	"github.com/FacileStudio/sonar/internal/server/modules/mcp"
 	"github.com/FacileStudio/sonar/internal/server/modules/search"
 	"github.com/FacileStudio/sonar/internal/server/modules/summary"
 	"github.com/FacileStudio/sonar/internal/server/plans"
@@ -27,6 +28,7 @@ type app struct {
 	ring    *keyring.Ring
 	signer  *imgsig.Signer
 	counter *quota.Counter
+	mcp     *mcp.Service
 	log     *slog.Logger
 }
 

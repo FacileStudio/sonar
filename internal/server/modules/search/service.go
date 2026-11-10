@@ -30,22 +30,26 @@ type Service struct {
 	Logger   *slog.Logger
 }
 
-// Query is one search request.
+// Query is one search request. Literal skips !bang parsing, for callers
+// such as MCP clients that pass a model's text rather than a person's.
 type Query struct {
 	Q       string
 	Kind    Kind
 	Count   int
 	Engines []string
+	Literal bool
 }
 
 // Search runs q for userID. An external !bang returns its redirect and runs
 // nothing; an internal one switches the tab or the engine.
 func (s *Service) Search(ctx context.Context, userID int64, q Query) (Response, error) {
-	rest, bang, found := bangs.Parse(q.Q)
-	if found && bang.External() {
-		return Response{Query: rest, Kind: q.Kind, Redirect: bang.Target(rest)}, nil
+	if !q.Literal {
+		rest, bang, found := bangs.Parse(q.Q)
+		if found && bang.External() {
+			return Response{Query: rest, Kind: q.Kind, Redirect: bang.Target(rest)}, nil
+		}
+		q = applyBang(q, rest, bang, found)
 	}
-	q = applyBang(q, rest, bang, found)
 	if err := validate(q); err != nil {
 		return Response{}, err
 	}

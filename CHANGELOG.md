@@ -4,6 +4,14 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+
+- `POST /mcp`, the remote MCP server (spec 2026-07-28, stateless, tronc/mcp), behind Registre tokens bound to `https://sonar.facile.studio/mcp` with the one scope `sonar.read`. Two read-only, open-world tools: `sonar_search` (web, images or news; `engines` only on the user's own keys; no `!bang`) and `sonar_fetch` (public-only guard, markdown in parts with `offset` and `next_offset`). Each call spends one search of the daily quota; an exhausted quota is an error naming the upgrade page. On when `MCP_RESOURCE` is set (compose default).
+
+### Changed
+
+- tronc v0.20.0, porte v0.14.0 with porte/mcpauth v0.1.0, go-sdk v1.8.0 (the stdio `sonar mcp` included).
+
 ## [v0.15.6] - 2026-11-10
 
 ### Changed

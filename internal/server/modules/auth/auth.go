@@ -26,12 +26,13 @@ type Config struct {
 
 // Kits is porte, assembled.
 type Kits struct {
-	DB        *sql.DB
-	Sessions  *session.Manager
-	OIDC      *oidc.Kit
-	Syncer    *directory.Syncer
-	Deletions *directory.Deletions
-	Issuer    string
+	DB         *sql.DB
+	Sessions   *session.Manager
+	OIDC       *oidc.Kit
+	Syncer     *directory.Syncer
+	Deletions  *directory.Deletions
+	Identities porte.IdentityStore
+	Issuer     string
 }
 
 type pictureUsers struct {
@@ -82,7 +83,7 @@ func New(ctx context.Context, db *sql.DB, cfg Config, apply func(context.Context
 	if err != nil {
 		return nil, err
 	}
-	kits := &Kits{DB: db, Sessions: sessions, OIDC: kit, Issuer: cfg.Porte.Issuer}
+	kits := &Kits{DB: db, Sessions: sessions, OIDC: kit, Identities: store.Identities(), Issuer: cfg.Porte.Issuer}
 	if cfg.Porte.Issuer != "" {
 		if strings.HasPrefix(cfg.Porte.Issuer, "https://") {
 			if _, err := backfillPictures(ctx, db, cfg.Porte.Issuer); err != nil && logger != nil {
