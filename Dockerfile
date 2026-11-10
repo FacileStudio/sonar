@@ -1,11 +1,11 @@
-FROM oven/bun:1 AS client-build
+FROM oven/bun:1.4.4 AS client-build
 WORKDIR /client
 COPY apps/client/package.json apps/client/bun.lock ./
 RUN bun install --frozen-lockfile
 COPY apps/client/ .
 RUN bun run build
 
-FROM golang:1.26-alpine AS api-build
+FROM golang:1.26.10-alpine AS api-build
 ARG TARGETOS=linux
 ARG TARGETARCH
 WORKDIR /src
