@@ -4,9 +4,22 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.17.0] - 2026-11-10
+
+### Added
+
+- `GET /api/me/invitations` (porte/kit) and an Invitations row in the user menu: the signed-in person's pending Registre space invitations, with a count.
+
 ### Changed
 
-- Licensed under the GNU Affero General Public License v3.0 only (`AGPL-3.0-only`). See `LICENSE`.
+- Licensed under the GNU Affero General Public License v3.0 only (`AGPL-3.0-only`). See `LICENSE`. Releases up to v0.16.1 carried no licence.
+- tronc v0.21.0, porte v0.18.2 (directory v0.4.0), muse v0.18.0. The client's theme store comes from `@facile/client` v0.1.0; the stored choice keeps its `sonar-theme` key.
+- Go 1.26.10, golang.org/x/net v0.62.0, go-jose v4.1.6 and chi v5.4.0, which clear every critical and high advisory douane 0.7.1 reported. The image builds on `golang:1.26.10-alpine` and `oven/bun:1.4.4`.
+- filet `preset: facile` at v0.19.1 in CI, douane 0.7.1 in CI (`-fail critical -scope prod`), and `filet gate .` as the pre-push hook. `mise.toml` pins bun 1.4.4, the first line that reads the client's lockfile.
+
+### Fixed
+
+- A Registre erasure notice erases the person when their identity was stored under the other spelling of the issuer (with or without a trailing slash). Before, it deleted nothing in that case. The test now proves every row of the person goes, sealed engine keys included.
 
 ## [v0.16.1] - 2026-11-10
 
