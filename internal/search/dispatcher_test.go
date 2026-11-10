@@ -16,7 +16,6 @@ import (
 
 type stubEngine struct {
 	name  string
-	prio  int
 	hits  []engines.Result
 	err   error
 	delay time.Duration

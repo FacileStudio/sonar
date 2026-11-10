@@ -74,9 +74,7 @@ func indent0(line string) int {
 func concat(parts ...[]string) []string {
 	var out []string
 	for _, p := range parts {
-		for _, s := range p {
-			out = append(out, s)
-		}
+		out = append(out, p...)
 	}
 	return out
 }
