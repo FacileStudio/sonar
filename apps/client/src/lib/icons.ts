@@ -22,7 +22,7 @@ export function registerAppIcons() {
 		[SONAR_ICON]: {
 			width: 24,
 			height: 24,
-			body: `<g ${stroke}><path d="M12 12 19 5"/><path d="M20.5 12A8.5 8.5 0 1 1 12 3.5" opacity=".5"/><path d="M16 12a4 4 0 1 1-4-4"/></g><circle cx="12" cy="12" r="1.6" fill="currentColor"/>`
+			body: '<g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 12 19 5"/><path d="M20.5 12A8.5 8.5 0 1 1 12 3.5" opacity=".5"/><path d="M16 12a4 4 0 1 1-4-4"/></g><circle cx="12" cy="12" r="1.8" fill="currentColor"/>'
 		},
 		[IMAGES_ICON]: {
 			width: 24,
