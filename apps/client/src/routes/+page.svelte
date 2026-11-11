@@ -14,7 +14,7 @@
 	});
 </script>
 
-<svelte:head><title>Sonar — {t('shell.tagline')}</title></svelte:head>
+<svelte:head><title>sonar · Multi-engine web search</title></svelte:head>
 
 <Shell>
 	<section class="flex flex-1 flex-col items-center justify-center gap-8 py-10 sm:py-20">

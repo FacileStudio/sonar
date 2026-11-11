@@ -9,17 +9,32 @@
 				if (t === 'dark' || t === 'light') document.documentElement.classList.add(t);
 			})();
 		</script>
-		<link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
+		<title>sonar · Multi-engine web search</title>
+		<meta name="description" content="Runs one query across several search APIs, your SearXNG instances and scrape fallbacks, then merges the results." />
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<link rel="icon" href="/favicon.ico" sizes="48x48" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+		<link rel="manifest" href="/site.webmanifest" />
+		<meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafafa" />
+		<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Facile" />
+		<meta property="og:locale" content="en_US" />
+		<meta property="og:url" content="https://sonar.facile.studio/" />
+		<meta property="og:title" content="sonar · Multi-engine web search" />
+		<meta property="og:description" content="Runs one query across several search APIs, your SearXNG instances and scrape fallbacks, then merges the results." />
+		<meta property="og:image" content="https://sonar.facile.studio/og-image.png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content="sonar: Multi-engine web search" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content="sonar · Multi-engine web search" />
+		<meta name="twitter:description" content="Runs one query across several search APIs, your SearXNG instances and scrape fallbacks, then merges the results." />
+		<meta name="twitter:image" content="https://sonar.facile.studio/og-image.png" />
 		<link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="Sonar" />
 		<meta name="color-scheme" content="light dark" />
 		<meta name="referrer" content="no-referrer" />
-		<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
-		<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
-		<meta name="description" content="Sonar by Facile: private web search with no history. Web, images and news across several engines." />
-		<meta property="og:title" content="Sonar — private web search" />
-		<meta property="og:site_name" content="Sonar" />
 		%sveltekit.head%
-		<title>Sonar — private web search</title>
 	</head>
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">%sveltekit.body%</div>
