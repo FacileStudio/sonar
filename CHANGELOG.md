@@ -4,6 +4,16 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.18.0] - 2026-11-11
+
+### Changed
+
+- The header mark uses the catalog sonar glyph: 1.8 strokes and a 1.8 centre dot, the same drawing as the favicon and link preview.
+
+### Fixed
+
+- The hosted client's favicon, touch and manifest icons, link preview image and web manifest come from the muse v0.19.0 brand generator, and the head carries the suite's canonical title, description, theme colours and Open Graph and Twitter tags. The search page title matches the suite catalog.
+
 ## [v0.17.1] - 2026-11-11
 
 ### Security
