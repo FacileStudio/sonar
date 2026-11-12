@@ -17,7 +17,7 @@ require (
 require (
 	github.com/JohannesKaufmann/dom v0.3.1 // indirect
 	github.com/coreos/go-oidc/v3 v3.20.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.6 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.9 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
@@ -31,8 +31,8 @@ require (
 )
 
 require (
-	github.com/FacileStudio/porte v0.18.2
-	github.com/FacileStudio/porte/directory v0.4.0
+	github.com/FacileStudio/porte v0.19.0
+	github.com/FacileStudio/porte/directory v0.5.0
 	github.com/FacileStudio/porte/forfait v0.1.1
 	github.com/FacileStudio/tronc v0.21.0
 	github.com/FacileStudio/tronc/migrate v0.1.0
@@ -44,7 +44,7 @@ require (
 	github.com/charmbracelet/x/windows v0.2.2 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
-	github.com/go-chi/chi/v5 v5.4.0
+	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-rod/rod v0.116.2
 	github.com/go-rod/stealth v0.4.9
 	github.com/google/jsonschema-go v0.4.3 // indirect

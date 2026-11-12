@@ -51,6 +51,7 @@ func newDeletions(db *sql.DB, store *portepg.Store, client directory.Client, log
 		Client:          client,
 		OnPersonDeleted: eraseAccount(db),
 		Erase:           store.EraseIdentity,
+		Holds:           store.HoldsIdentity,
 		State:           deletionState{db: db},
 		Logger:          logger,
 	}
