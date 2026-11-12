@@ -82,9 +82,16 @@ func New(ctx context.Context, db *sql.DB, cfg Config, apply func(context.Context
 	if err != nil {
 		return nil, err
 	}
-	oidcKit, err := oidc.New(ctx, cfg.Porte, oidc.Deps{
+	deps := oidc.Deps{
 		Users: pictureUsers{UserStore: store.Users()}, Identities: store.Identities(), Sessions: sessions, Codes: store.LoginCodes(), Logger: logger,
-	})
+	}
+	client := directory.Client{Issuer: cfg.Porte.Issuer, ClientID: cfg.ClientID, ClientSecret: cfg.ClientSecret}
+	var deletions *directory.Deletions
+	if cfg.Porte.Issuer != "" {
+		deletions = newDeletions(db, store, client, logger)
+		deps.Erased = deletions
+	}
+	oidcKit, err := oidc.New(ctx, cfg.Porte, deps)
 	if err != nil {
 		return nil, err
 	}
@@ -95,14 +102,13 @@ func New(ctx context.Context, db *sql.DB, cfg Config, apply func(context.Context
 	if _, err := backfillPictures(ctx, db, cfg.Porte.Issuer); err != nil && logger != nil {
 		logger.Warn("backfill pictures failed", slog.Any("error", err))
 	}
-	return kits, kits.linkRegistre(store, cfg, apply, logger)
+	kits.Deletions = deletions
+	return kits, kits.linkRegistre(store, client, apply, logger)
 }
 
-func (k *Kits) linkRegistre(store *portepg.Store, cfg Config, apply func(context.Context, directory.Snapshot) error,
+func (k *Kits) linkRegistre(store *portepg.Store, client directory.Client, apply func(context.Context, directory.Snapshot) error,
 	logger *slog.Logger) error {
-	client := directory.Client{Issuer: cfg.Porte.Issuer, ClientID: cfg.ClientID, ClientSecret: cfg.ClientSecret}
 	k.Syncer = &directory.Syncer{Client: client, Apply: apply, Logger: logger}
-	k.Deletions = newDeletions(k.DB, store, client, logger)
 	invitations, err := kit.NewInvitations(kit.InvitationsConfig{Directory: client, Identities: store.Identities(),
 		Logger: logger})
 	if err != nil {
