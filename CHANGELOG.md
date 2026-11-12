@@ -4,6 +4,8 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.18.1] - 2026-11-12
+
 ### Fixed
 
 - Erasure: sonar refuses a sign-in, a profile sync or a first MCP call for a subject it already erased, so a bearer token minted before the erasure cannot bring the account back. An account re-created in that race is erased again on Registre's next push or poll, without a restart (porte v0.19.0).
