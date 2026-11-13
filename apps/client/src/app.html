@@ -34,6 +34,16 @@
 		<link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="Sonar" />
 		<meta name="color-scheme" content="light dark" />
 		<meta name="referrer" content="no-referrer" />
+		<script>
+			(function () {
+				if (location.hostname !== 'sonar.facile.studio') return;
+				var s = document.createElement('script');
+				s.async = true;
+				s.src = 'https://vision.facile.studio/s.js';
+				s.setAttribute('data-mask', '');
+				document.head.appendChild(s);
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
