@@ -19,9 +19,11 @@ services:
       - '5432'
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sonar"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
-      retries: 10
+      retries: 5
+      start_period: 30s
+      start_interval: 1s
   sonar-api:
     container_name: sonar-api
     restart: unless-stopped
@@ -77,10 +79,11 @@ services:
       SONAR_BULLE_KEY: ${SONAR_BULLE_KEY:-}
     healthcheck:
       test: ["CMD", "/sonar", "healthcheck"]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 60s
+      start_interval: 1s
     depends_on:
       sonar-db:
         condition: service_healthy
