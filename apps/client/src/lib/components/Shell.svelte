@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { LandingFooter, LocaleSwitch, SignInWithFacile, UserMenu } from '@facile/muse';
-	import { Icon } from '@facile/muse';
+	import { Icon, Tooltip } from '@facile/muse';
 	import { api, SIGN_IN_HREF } from '$lib/api';
 	import { SONAR_ICON } from '$lib/icons';
 	import { session } from '$lib/session.svelte';
@@ -57,10 +57,12 @@
 <div class="flex min-h-[100dvh] flex-col bg-fc-page text-fc-fg">
 	<header class="sticky top-0 z-30 bg-fc-page/90 backdrop-blur">
 		<div class="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6">
-			<a href="/" class="flex shrink-0 items-center gap-2 rounded-fc-pill font-fc-title text-fc-md" aria-label={t('shell.home')}>
-				<Icon icon={SONAR_ICON} size={26} />
-				<span class="hidden sm:inline">Sonar</span>
-			</a>
+			<Tooltip text={t('shell.home')} describe={false} class="contents">
+				<a href="/" class="flex shrink-0 items-center gap-2 rounded-fc-pill font-fc-title text-fc-md" aria-label={t('shell.home')}>
+					<Icon icon={SONAR_ICON} size={26} />
+					<span class="hidden sm:inline">Sonar</span>
+				</a>
+			</Tooltip>
 			<div class="min-w-0 flex-1">{@render search?.()}</div>
 			<div class="flex shrink-0 items-center gap-2">
 				{#if session.user}
