@@ -4,6 +4,12 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.18.4] - 2026-11-13
+
+### Added
+
+- The hosted client loads Vision's analytics tracker on sonar.facile.studio only, with `data-mask` path masking. The enforced CSP allows `https://vision.facile.studio` in `script-src`; the tracker's pixels already fit the default https `img-src`.
+
 ## [v0.18.3] - 2026-11-13
 
 ### Changed
