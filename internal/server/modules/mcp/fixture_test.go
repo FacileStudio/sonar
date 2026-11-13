@@ -14,6 +14,7 @@ import (
 	"github.com/FacileStudio/sonar/internal/server/modules/search"
 	"github.com/FacileStudio/sonar/websearch"
 	troncerrors "github.com/FacileStudio/tronc/errors"
+	mcpkit "github.com/FacileStudio/tronc/mcp"
 	"github.com/FacileStudio/tronc/mcp/mcptest"
 	"github.com/go-chi/chi/v5"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -105,7 +106,7 @@ func newFixture(t *testing.T, limit int64, own keys) *fixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mcpService, err := NewService(service, Config{Resource: f.resource, Issuer: f.issuer.URL, Version: "test",
+	mcpService, err := NewService(service, mcpkit.AppConfig{Resource: f.resource, Issuer: f.issuer.URL, Version: "test",
 		Verifier: verifier, PerMinute: 100_000})
 	if err != nil {
 		t.Fatal(err)

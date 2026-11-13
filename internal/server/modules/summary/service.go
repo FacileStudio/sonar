@@ -15,6 +15,8 @@ import (
 const (
 	maxSources = 10
 	maxSnippet = 600
+	maxTitle   = 300
+	maxURL     = 2048
 )
 
 // Source is one result the summary may cite.
@@ -100,7 +102,7 @@ func (s *Service) run(ctx context.Context, userID int64, body Request) (Response
 	}
 	response, err := s.Writer.Summarize(ctx, email, body)
 	if err != nil {
-		return Response{}, troncerrors.Unavailable("the summary could not be written; try again")
+		return Response{}, failure(err)
 	}
 	response.Sources = body.Sources
 	return response, nil
@@ -125,15 +127,22 @@ func (s *Service) gather(ctx context.Context, userID int64, ask Ask) (Request, e
 func clean(found []Source) []Source {
 	out := make([]Source, 0, min(len(found), maxSources))
 	for _, source := range found {
-		if !strings.HasPrefix(source.URL, "https://") && !strings.HasPrefix(source.URL, "http://") {
+		web := strings.HasPrefix(source.URL, "https://") || strings.HasPrefix(source.URL, "http://")
+		if !web || len(source.URL) > maxURL {
 			continue
 		}
-		if utf8.RuneCountInString(source.Snippet) > maxSnippet {
-			source.Snippet = string([]rune(source.Snippet)[:maxSnippet])
-		}
+		source.Title = clip(source.Title, maxTitle)
+		source.Snippet = clip(source.Snippet, maxSnippet)
 		if out = append(out, source); len(out) == maxSources {
 			break
 		}
 	}
 	return out
+}
+
+func clip(text string, limit int) string {
+	if utf8.RuneCountInString(text) > limit {
+		return string([]rune(text)[:limit])
+	}
+	return text
 }

@@ -7,14 +7,9 @@ package mcp
 
 import (
 	"context"
-	"errors"
-	"log/slog"
-	"net/url"
 
 	"github.com/FacileStudio/sonar/internal/server/modules/search"
 	mcpkit "github.com/FacileStudio/tronc/mcp"
-	"github.com/FacileStudio/tronc/middleware"
-	"github.com/modelcontextprotocol/go-sdk/auth"
 )
 
 const instructions = `Sonar is a private web search engine. Call sonar_search to find sources ` +
@@ -31,17 +26,6 @@ type Searcher interface {
 	Usage(ctx context.Context, userID int64) (search.Usage, error)
 }
 
-// Config describes the endpoint.
-type Config struct {
-	Resource  string
-	Issuer    string
-	Version   string
-	Origins   []string
-	Verifier  auth.TokenVerifier
-	PerMinute int
-	Logger    *slog.Logger
-}
-
 // Service is the MCP server.
 type Service struct {
 	server *mcpkit.Server
@@ -49,24 +33,14 @@ type Service struct {
 
 // NewService builds the MCP server over searcher. Its only scope is
 // sonar.read, since no tool writes.
-func NewService(searcher Searcher, cfg Config) (*Service, error) {
-	resource, err := url.Parse(cfg.Resource)
-	if err != nil || resource.Host == "" {
-		return nil, errors.New("mcp: the resource must be an absolute URI")
-	}
-	if cfg.PerMinute == 0 {
-		cfg.PerMinute = 120
-	}
-	tools := &toolset{searcher: searcher, appURL: resource.Scheme + "://" + resource.Host}
-	server, err := mcpkit.New(mcpkit.Options{
-		Name: "sonar", Title: "Sonar", Version: cfg.Version, Instructions: instructions,
-		Resource: cfg.Resource, Issuer: cfg.Issuer, Verifier: cfg.Verifier, Origins: cfg.Origins, Audit: cfg.Logger,
-		Scopes:    mcpkit.Scopes{Read: "sonar.read"},
-		RateLimit: middleware.RatelimitConfig{Limit: float64(cfg.PerMinute) / 60, Burst: cfg.PerMinute},
-		Tools:     tools.list(),
+func NewService(searcher Searcher, cfg mcpkit.AppConfig) (*Service, error) {
+	tools := &toolset{searcher: searcher}
+	app, err := mcpkit.NewApp(cfg, mcpkit.AppSpec{
+		Name: "sonar", Title: "Sonar", Instructions: instructions,
+		Tools: tools.list(), Scopes: mcpkit.Scopes{Read: "sonar.read"},
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &Service{server: server}, nil
+	return &Service{server: app.Server}, nil
 }

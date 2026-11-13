@@ -17,12 +17,11 @@ var errNoCaller = errors.New("this request carries no valid access token. Reconn
 
 type toolset struct {
 	searcher Searcher
-	appURL   string
 }
 
 // list is the curated tool set: two reads that reach the open web.
 func (t *toolset) list() []mcpkit.Tool {
-	reads := &mcpkit.Annotations{ReadOnly: true, Idempotent: true, OpenWorld: true}
+	reads := &mcpkit.Annotations{ReadOnly: true, OpenWorld: true}
 	return []mcpkit.Tool{
 		mcpkit.NewTool(mcpkit.ToolSpec{
 			Name: toolSearch, Title: "Search the web",
