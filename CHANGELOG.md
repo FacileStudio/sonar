@@ -4,6 +4,12 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.18.5] - 2026-11-13
+
+### Changed
+
+- The hosted client is on muse v0.21.0: muse controls show their tooltips sooner, and the header home link, logo-only on narrow screens, shows a muse tooltip.
+
 ## [v0.18.4] - 2026-11-13
 
 ### Added
