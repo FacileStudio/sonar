@@ -4,6 +4,16 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.19.0] - 2026-11-14
+
+### Added
+
+- Signed-out visitors get a landing page: a short hero, an animated search demo built with mise-en-scene v0.2.1, four feature cards, a `sonar fetch` terminal demo and the CLI install commands (Homebrew, `go install`) in muse's `DownloadSection`. Copy is in en, fr, es and de.
+
+### Changed
+
+- The hosted client is on muse v0.22.0 and its Magnetik fonts. Headings and result titles use `font-bold`.
+
 ## [v0.18.5] - 2026-11-13
 
 ### Changed
