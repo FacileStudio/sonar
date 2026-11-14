@@ -4,6 +4,12 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.21.1] - 2026-11-14
+
+### Changed
+
+- build(compose): `sonar-api` no longer sets `container_name`, so Dokploy can roll it with the docker zdt plugin (zero-downtime deploys). Compose DNS still answers to the service name. The service now carries the label `journal.app: sonar-api`, so its Journal app name is unchanged.
+
 ## [v0.21.0] - 2026-11-14
 
 ### Added
