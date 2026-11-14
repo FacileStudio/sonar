@@ -42,6 +42,13 @@ export const landing = {
 		'Busca desde la terminal y obtén cualquier página en markdown.',
 		'Suche in der Shell und hol jede Seite als Markdown.'
 	],
+	'landing.downloadsTitle': ['Downloads', 'Téléchargements', 'Descargas', 'Downloads'],
+	'landing.downloadsLead': [
+		'Every way to install the sonar CLI on macOS and Linux.',
+		'Toutes les façons d’installer la CLI sonar sur macOS et Linux.',
+		'Todas las formas de instalar la CLI de sonar en macOS y Linux.',
+		'Alle Wege, die sonar-CLI unter macOS und Linux zu installieren.'
+	],
 	'landing.closingTitle': ['Start searching', 'Commencez à chercher', 'Empieza a buscar', 'Jetzt suchen'],
 	'landing.engines': ['{count} engines', '{count} moteurs', '{count} motores', '{count} Suchmaschinen'],
 	'landing.searchDemo': [
