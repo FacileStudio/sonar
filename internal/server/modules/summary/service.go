@@ -3,6 +3,7 @@ package summary
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"unicode/utf8"
@@ -17,6 +18,7 @@ const (
 	maxSnippet = 600
 	maxTitle   = 300
 	maxURL     = 2048
+	maxBody    = 30 << 10
 )
 
 // Source is one result the summary may cite.
@@ -121,7 +123,19 @@ func (s *Service) gather(ctx context.Context, userID int64, ask Ask) (Request, e
 	if len(sources) == 0 {
 		return Request{}, troncerrors.NotFound("no source was found to summarize")
 	}
-	return Request{Query: query, Sources: sources}, nil
+	return fit(Request{Query: query, Sources: sources}), nil
+}
+
+func fit(body Request) Request {
+	for len(body.Sources) > 1 && encodedSize(body) > maxBody {
+		body.Sources = body.Sources[:len(body.Sources)-1]
+	}
+	return body
+}
+
+func encodedSize(body Request) int {
+	raw, _ := json.Marshal(body)
+	return len(raw)
 }
 
 func clean(found []Source) []Source {

@@ -46,8 +46,9 @@ func (b *Bulle) Summarize(ctx context.Context, actingFor string, req Request) (R
 }
 
 // failure turns a Writer error into the answer the person sees: Bulle's
-// plan refusal with its upgrade link, its daily cap, a refusal that retrying
-// will not fix, or a temporary outage.
+// plan refusal with its upgrade link, its per-minute burst limit (a
+// plain-text 429 from tronc's rate limiter, so it carries no message), a
+// refusal that retrying will not fix, or a temporary outage.
 func failure(err error) error {
 	var plan *bulle.PlanRequired
 	var refused *bulle.StatusError
@@ -56,7 +57,7 @@ func failure(err error) error {
 		return troncerrors.PaymentRequired(orDefault(plan.Message, "AI summaries need a paid plan.")).
 			WithUpgradeURL(plan.UpgradeURL)
 	case stderrors.As(err, &refused) && refused.Status == http.StatusTooManyRequests:
-		return troncerrors.RateLimited(orDefault(refused.Message, "the daily AI limit is reached"))
+		return troncerrors.RateLimited("too many summaries; try again in a minute")
 	case stderrors.As(err, &refused):
 		return troncerrors.Internal("the summary service refused the request", err)
 	default:

@@ -25,6 +25,29 @@ func TestCleanFitsBulleLimits(t *testing.T) {
 	}
 }
 
+func TestFitKeepsTheBodyUnderBulleCap(t *testing.T) {
+	sources := make([]Source, maxSources)
+	for i := range sources {
+		sources[i] = Source{
+			Title:   strings.Repeat("語", maxTitle),
+			URL:     "https://example.com/" + strings.Repeat(string(rune('a'+i)), maxURL-20),
+			Snippet: strings.Repeat("語", maxSnippet),
+		}
+	}
+	got := fit(Request{Query: "q", Sources: sources})
+	if n := encodedSize(got); n > maxBody {
+		t.Fatalf("body is %d bytes, want at most %d", n, maxBody)
+	}
+	if len(got.Sources) == 0 || len(got.Sources) == maxSources {
+		t.Fatalf("kept %d sources, want some dropped and some kept", len(got.Sources))
+	}
+	for i, source := range got.Sources {
+		if source.URL != sources[i].URL {
+			t.Fatalf("source %d is %q, want the original order kept", i, source.URL)
+		}
+	}
+}
+
 func TestBulleFailures(t *testing.T) {
 	cases := []struct {
 		status  int
@@ -34,7 +57,7 @@ func TestBulleFailures(t *testing.T) {
 	}{
 		{402, `{"error":{"code":"payment_required","message":"Upgrade first.","upgrade_url":"https://sso.example/plans"}}`,
 			http.StatusPaymentRequired, "https://sso.example/plans"},
-		{429, `{"error":{"code":"rate_limited","message":"Daily cap."}}`, http.StatusTooManyRequests, ""},
+		{429, "Rate limit exceeded\n", http.StatusTooManyRequests, ""},
 		{400, `{"error":{"code":"invalid_argument","message":"bad source"}}`, http.StatusInternalServerError, ""},
 		{503, ``, http.StatusServiceUnavailable, ""},
 	}
@@ -43,8 +66,12 @@ func TestBulleFailures(t *testing.T) {
 		if got := troncerrors.Status(mapped); got != c.want {
 			t.Fatalf("Bulle %d mapped to %d, want %d", c.status, got, c.want)
 		}
-		if e, ok := mapped.(*troncerrors.Error); !ok || e.UpgradeURL != c.upgrade {
+		e, ok := mapped.(*troncerrors.Error)
+		if !ok || e.UpgradeURL != c.upgrade {
 			t.Fatalf("Bulle %d: upgrade URL %+v, want %q", c.status, mapped, c.upgrade)
+		}
+		if c.status == http.StatusTooManyRequests && !strings.Contains(e.Message, "try again in a minute") {
+			t.Fatalf("Bulle 429 says %q, want a retry hint", e.Message)
 		}
 	}
 }
