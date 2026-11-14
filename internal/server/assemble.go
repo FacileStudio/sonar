@@ -58,17 +58,24 @@ func assemble(ctx context.Context, db *sql.DB, cfg Config, log *slog.Logger) (*a
 	a.search = &search.Service{Instance: instance, ForKeys: forKeys, Plans: gate, Quota: counter, Keys: ring,
 		Signer: signer, Logger: log, Web: cfg.Engines.Web.Within(instance.Engines()),
 		Sources: cfg.Engines.Sources.Within(instance.Engines())}
-	a.wireSummary(db, gate, cfg)
 	log.Info("search engines ready", slog.Any("engines", instance.Engines()),
 		slog.Any("web_chain", a.search.Web.Engines), slog.Any("summary_engines", a.search.Sources.Engines))
-	return a, nil
+	return a, a.wireSummary(db, gate, cfg)
 }
 
-func (a *app) wireSummary(db *sql.DB, access summary.Access, cfg Config) {
+func (a *app) wireSummary(db *sql.DB, access summary.Access, cfg Config) error {
 	a.summary = &summary.Service{DB: db, Access: access, Sources: a.summarySources}
-	if writer := summary.NewBulle(cfg.BulleURL, cfg.BulleKey); cfg.Summary && writer != nil {
+	if !cfg.Summary {
+		return nil
+	}
+	writer, err := summary.NewBulle(cfg.BulleURL, cfg.BulleKey)
+	if err != nil {
+		return err
+	}
+	if writer != nil {
 		a.summary.Writer = writer
 	}
+	return nil
 }
 
 func (a *app) summarySources(ctx context.Context, userID int64, query string, count int) ([]summary.Source, error) {

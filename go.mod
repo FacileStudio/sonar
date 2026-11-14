@@ -5,7 +5,7 @@ go 1.26.11
 require (
 	charm.land/fang/v2 v2.0.1
 	charm.land/lipgloss/v2 v2.0.1
-	github.com/FacileStudio/porte/mcpauth v0.2.0
+	github.com/FacileStudio/porte/mcpauth v0.3.0
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.2
 	github.com/charmbracelet/x/ansi v0.11.6
 	github.com/modelcontextprotocol/go-sdk v1.8.0
@@ -31,11 +31,11 @@ require (
 )
 
 require (
-	github.com/FacileStudio/porte v0.19.0
+	github.com/FacileStudio/porte v0.20.0
 	github.com/FacileStudio/porte/directory v0.5.0
-	github.com/FacileStudio/porte/forfait v0.1.1
-	github.com/FacileStudio/tronc v0.21.0
-	github.com/FacileStudio/tronc/migrate v0.1.0
+	github.com/FacileStudio/porte/forfait v0.1.3
+	github.com/FacileStudio/tronc v0.23.0
+	github.com/FacileStudio/tronc/migrate v0.1.1
 	github.com/charmbracelet/colorprofile v0.4.2 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20260205113103-524a6607adb8 // indirect
 	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250603201427-c31516f43444 // indirect

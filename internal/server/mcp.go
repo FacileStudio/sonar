@@ -6,6 +6,7 @@ import (
 
 	"github.com/FacileStudio/porte/mcpauth"
 	"github.com/FacileStudio/sonar/internal/server/modules/mcp"
+	mcpkit "github.com/FacileStudio/tronc/mcp"
 )
 
 // newMCP builds the MCP server when sign-in is on and MCP_RESOURCE is set,
@@ -23,6 +24,6 @@ func newMCP(ctx context.Context, a *app, cfg Config, version string) (*mcp.Servi
 		return nil, err
 	}
 	a.log.Info("mcp server on", slog.String("resource", cfg.MCPResource))
-	return mcp.NewService(a.search, mcp.Config{Resource: cfg.MCPResource, Issuer: cfg.OIDC.Issuer, Version: version,
+	return mcp.NewService(a.search, mcpkit.AppConfig{Resource: cfg.MCPResource, Issuer: cfg.OIDC.Issuer, Version: version,
 		Origins: cfg.CORSAllowedOrigins, Verifier: verifier, Logger: a.log})
 }
