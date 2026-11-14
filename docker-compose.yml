@@ -25,7 +25,6 @@ services:
       start_period: 30s
       start_interval: 1s
   sonar-api:
-    container_name: sonar-api
     restart: unless-stopped
     build:
       context: .
@@ -36,6 +35,7 @@ services:
       - default
       - dokploy-network
     labels:
+      journal.app: sonar-api
       traefik.enable: 'true'
       traefik.docker.network: dokploy-network
       traefik.http.routers.sonar-web.rule: "Host(`sonar.facile.studio`)"
