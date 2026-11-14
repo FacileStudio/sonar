@@ -4,6 +4,16 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.20.0] - 2026-11-14
+
+### Changed
+
+- The hosted MCP server is built through tronc's `mcpkit.NewApp` with a read-only `sonar.read` scope. Rate limit and scopes are unchanged. `sonar_search` and `sonar_fetch` no longer claim to be idempotent, since each call spends one search of the daily quota.
+- The AI summary calls Bulle through tronc's `bulle` client, which never follows a redirect. Titles are cut to 300 characters, a source with a URL over 2048 bytes is left out, and the request body stays under 30 KiB by dropping sources from the end, so citation numbers still match.
+- Bulle errors map to clear answers: a 402 shows the plan error with its upgrade link, a 429 says "too many summaries; try again in a minute", any other refusal is a 500, and only an outage is a 503.
+- tronc v0.23.0, tronc/migrate v0.1.1, porte v0.20.0, porte/mcpauth v0.3.0, porte/forfait v0.1.3. Release binaries build with the Go version from `go.mod`.
+- A `BULLE_URL` that is not an http(s) origin fails boot when `SONAR_AI_SUMMARY` is on.
+
 ## [v0.19.0] - 2026-11-14
 
 ### Added
