@@ -4,6 +4,17 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.21.0] - 2026-11-14
+
+### Added
+
+- A public `/downloads` page lists every way to install the CLI: Homebrew, `go install` and the GitHub releases. The landing footer links to it.
+
+### Changed
+
+- The landing's install section shows only the visitor's option: the CLI commands on a desktop, an "All downloads" link to `/downloads` on a phone.
+- The hosted client is on muse v0.23.0 (left-aligned footer on phones) and mise-en-scene v0.2.2.
+
 ## [v0.20.0] - 2026-11-14
 
 ### Changed
