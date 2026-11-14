@@ -20,7 +20,7 @@
 		</header>
 		{#each terms.sections as section (section.heading)}
 			<section class="flex flex-col gap-2">
-				<h2 class="text-fc-md font-medium">{section.heading}</h2>
+				<h2 class="text-fc-md font-bold">{section.heading}</h2>
 				{#each section.body as paragraph (paragraph)}<p class="text-fc-sm leading-relaxed">{paragraph}</p>{/each}
 			</section>
 		{/each}

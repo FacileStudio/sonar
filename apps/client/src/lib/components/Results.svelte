@@ -31,7 +31,7 @@
 						<span class="truncate">{host(result.url)}</span>
 						<Badge class="shrink-0 whitespace-nowrap">{result.engine}</Badge>
 					</span>
-					<span class="mt-1 block text-fc-md font-medium group-hover:underline">{result.title}</span>
+					<span class="mt-1 block text-fc-md font-bold group-hover:underline">{result.title}</span>
 					{#if result.snippet}<span class="mt-1 line-clamp-3 text-fc-sm text-fc-fg-muted">{result.snippet}</span>{/if}
 				</a>
 			</li>
@@ -68,7 +68,7 @@
 							<span class="truncate">{item.source || host(item.url)}</span>
 							{#if item.age}<span class="shrink-0 whitespace-nowrap">· {item.age}</span>{/if}
 						</span>
-						<span class="mt-1 block text-fc-md font-medium group-hover:underline">{item.title}</span>
+						<span class="mt-1 block text-fc-md font-bold group-hover:underline">{item.title}</span>
 						{#if item.snippet}<span class="mt-1 line-clamp-2 text-fc-sm text-fc-fg-muted">{item.snippet}</span>{/if}
 					</span>
 					{#if item.thumbnail}

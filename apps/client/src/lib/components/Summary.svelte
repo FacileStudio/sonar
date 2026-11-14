@@ -37,7 +37,7 @@
 
 {#if text}
 	<Card class="flex flex-col gap-2 p-4">
-		<h2 class="text-fc-sm font-medium">{t('search.summary')}</h2>
+		<h2 class="text-fc-sm font-bold">{t('search.summary')}</h2>
 		<p class="whitespace-pre-line text-fc-sm">{text}</p>
 		{#if sources.length}
 			<ol class="flex list-decimal flex-col gap-1 pl-5 text-fc-xs">

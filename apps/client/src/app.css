@@ -1,13 +1,13 @@
 /*
- * muse is the design system. tokens.css imports tailwind itself and carries the Goga
- * @font-face rules, the fc-* theme, dark mode, `color-scheme` and the base layer — so this
- * file never imports tailwind a second time and never redeclares a colour.
+ * muse is the design system. tokens.css imports tailwind itself and carries the fonts,
+ * the fc-* theme, dark mode, `color-scheme` and the base layer, so this file never
+ * imports tailwind a second time and never redeclares a colour or a font.
  */
 @import '@facile/muse/styles';
 @source '../node_modules/@facile/muse/src';
 
 /*
- * The suite's semantic names, aliased onto muse tokens. Capsule's own markup speaks `fc-*`,
+ * The suite's semantic names, aliased onto muse tokens. Sonar's own markup speaks `fc-*`,
  * but class strings copy-paste in and out of the other Facile repos in both directions, and
  * an alias Tailwind never sees used emits nothing — so this costs no bytes and keeps
  * `bg-background` / `text-muted-foreground` rendering in muse's palette if any arrives.

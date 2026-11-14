@@ -30,11 +30,11 @@
 		<h1 class="font-fc-title text-fc-2xl">{t('bangs.title')}</h1>
 		<p class="text-fc-sm text-fc-fg-muted">{t('bangs.lead')}</p>
 		<Card class="flex flex-col gap-3 p-4">
-			<h2 class="font-medium">{t('bangs.internal')}</h2>
+			<h2 class="font-bold">{t('bangs.internal')}</h2>
 			{@render list(internal)}
 		</Card>
 		<Card class="flex flex-col gap-3 p-4">
-			<h2 class="font-medium">{t('bangs.external')}</h2>
+			<h2 class="font-bold">{t('bangs.external')}</h2>
 			<Alert tone="warning">{t('bangs.privacy')}</Alert>
 			{@render list(external)}
 		</Card>
