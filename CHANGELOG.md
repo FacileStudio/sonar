@@ -4,6 +4,12 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.22.0] - 2026-11-15
+
+### Changed
+
+- feat(server): AI search summaries go through Bulle's `/api/ai/summarize` with a token exchanged for the signed-in person (porte/exchange, tronc v0.25.0), not with a shared service key. `SONAR_BULLE_KEY` is gone: drop it from the deployment env. A person whose sign-in predates the exchange grant is asked to sign in again. When Bulle refuses for the monthly AI allowance, its message (with the reset date) is shown.
+
 ## [v0.21.1] - 2026-11-14
 
 ### Changed
