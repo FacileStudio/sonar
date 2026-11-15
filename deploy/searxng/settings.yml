@@ -1,0 +1,47 @@
+# SearXNG settings for sonar's internal instance. Only sonar-api can reach it.
+# Reference: https://docs.searxng.org/admin/settings/
+#
+# The secret key comes from $SEARXNG_SECRET, never from this file.
+# Engines: the key-less ones that answer from the server's address. Checked
+# on 2026-11-15: google and qwant deny it, duckduckgo answers with a captcha,
+# bing returns nothing. The brave scraper stays out: sonar is a Brave API
+# customer and must not scrape Brave.
+use_default_settings:
+  engines:
+    keep_only:
+      - mojeek
+      - startpage
+      - yahoo
+
+general:
+  debug: false
+  instance_name: sonar-searxng
+  contact_url: https://sonar.facile.studio
+  enable_metrics: false
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: all
+  formats:
+    - json
+
+server:
+  limiter: false
+  public_instance: false
+  image_proxy: false
+  method: POST
+
+outgoing:
+  request_timeout: 2.0
+  max_request_timeout: 2.5
+
+engines:
+  - name: mojeek
+    inactive: false
+    disabled: false
+  - name: startpage
+    inactive: false
+    disabled: false
+  - name: yahoo
+    disabled: false

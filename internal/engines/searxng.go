@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/FacileStudio/sonar/internal/httpc"
 )
@@ -32,17 +33,20 @@ type searxResponse struct {
 	} `json:"results"`
 }
 
+// Search posts the query as a form, so it never sits in a URL that the
+// instance, a proxy or an error message could record.
 func (s *Searxng) Search(ctx context.Context, query string, count int) ([]Result, error) {
-	u := s.BaseURL + "/search?" + url.Values{
-		"q":      {query},
-		"format": {"json"},
-	}.Encode()
-	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	form := url.Values{"q": {query}, "format": {"json"}}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.BaseURL+"/search", strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("%w: bad instance address", ErrTransient)
+	}
 	httpc.Fingerprint(req.Header)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 	res, err := s.Client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrTransient, err)
+		return nil, fmt.Errorf("%w: request failed", ErrTransient)
 	}
 	defer res.Body.Close()
 	if res.StatusCode == http.StatusTooManyRequests || res.StatusCode >= 500 {
@@ -53,7 +57,7 @@ func (s *Searxng) Search(ctx context.Context, query string, count int) ([]Result
 	}
 	var parsed searxResponse
 	if err := json.NewDecoder(res.Body).Decode(&parsed); err != nil {
-		return nil, fmt.Errorf("%w: decode: %v", ErrTransient, err)
+		return nil, fmt.Errorf("%w: decode failed", ErrTransient)
 	}
 	out := make([]Result, 0, len(parsed.Results))
 	for _, r := range parsed.Results {

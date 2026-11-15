@@ -26,7 +26,7 @@ func buildEngineUnits(cfg *config.Config, client *http.Client) []built {
 			continue
 		}
 		if e := makeEngine(name, def, client); e != nil {
-			out = append(out, built{name: name, prio: def.Priority, eng: e, scrape: isScrape(name)})
+			out = append(out, built{name: name, prio: def.Priority, eng: e, scrape: IsScrape(name)})
 		}
 	}
 	for i, base := range cfg.Searxng {
@@ -36,7 +36,16 @@ func buildEngineUnits(cfg *config.Config, client *http.Client) []built {
 			eng:  &engines.Searxng{Label: SearxngName(cfg.Searxng, i), BaseURL: base, Client: client},
 		})
 	}
+	if len(cfg.SearxngPool) > 0 {
+		out = append(out, built{name: engines.PoolName, prio: cfg.SearxngPriority, eng: newPool(cfg, client)})
+	}
 	return out
+}
+
+func newPool(cfg *config.Config, client *http.Client) engines.Engine {
+	return engines.NewSearxPool(cfg.SearxngPool, client, engines.PoolOptions{
+		MaxTries: cfg.SearxngPoolTries, Cooldown: cfg.BreakerCooldown,
+		MinInterval: cfg.MinInterval, Jitter: cfg.Jitter})
 }
 
 // SearxngName labels a SearXNG instance for the cache and merge layers: the
@@ -75,9 +84,9 @@ func makeEngine(name string, def *config.EngineDef, client *http.Client) engines
 	return makeScrape(name, def, client)
 }
 
-// isScrape reports whether an engine is scraped from a shared search endpoint
+// IsScrape reports whether an engine is scraped from a shared search endpoint
 // and must therefore never run concurrently with another scraper.
-func isScrape(name string) bool {
+func IsScrape(name string) bool {
 	return name == "bing" || name == "ddg"
 }
 

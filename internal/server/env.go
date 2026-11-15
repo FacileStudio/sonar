@@ -24,6 +24,9 @@ var instanceEngines = []string{"brave", "exa", "firecrawl", "linkup", "parallel"
 type Engines struct {
 	Keys    map[string]string
 	Searxng []string
+	Pool    []string
+	Tries   int
+	Free    []string
 	Web     search.Chain
 	Sources search.Chain
 }
@@ -99,8 +102,13 @@ func loadEngines() (Engines, error) {
 		web.Engines = nil
 	}
 	sources := search.Chain{Engines: listOr("SONAR_SUMMARY_ENGINES", "tavily", "exa", "parallel"), Enough: enough}
-	return Engines{Keys: engineKeys(), Searxng: troncenv.List("SONAR_SEARXNG"), Web: web,
-		Sources: sources.Without("brave")}, nil
+	tries, err := troncenv.Int("SONAR_SEARXNG_POOL_TRIES", 2)
+	if err != nil {
+		return Engines{}, err
+	}
+	return Engines{Keys: engineKeys(), Searxng: troncenv.List("SONAR_SEARXNG"),
+		Pool: troncenv.List("SONAR_SEARXNG_POOL"), Tries: tries, Free: troncenv.List("SONAR_FREE_ENGINES"),
+		Web: web, Sources: sources.Without("brave")}, nil
 }
 
 func listOr(key string, fallback ...string) []string {
