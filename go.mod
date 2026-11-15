@@ -34,7 +34,7 @@ require (
 	github.com/FacileStudio/porte v0.20.0
 	github.com/FacileStudio/porte/directory v0.5.0
 	github.com/FacileStudio/porte/forfait v0.1.3
-	github.com/FacileStudio/tronc v0.23.0
+	github.com/FacileStudio/tronc v0.25.0
 	github.com/FacileStudio/tronc/migrate v0.1.1
 	github.com/charmbracelet/colorprofile v0.4.2 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20260205113103-524a6607adb8 // indirect
