@@ -208,3 +208,31 @@ func TestPoolNeverShowsTheQueryOrTheRequestURL(t *testing.T) {
 		t.Fatalf("the form body carries %q, want the query", q)
 	}
 }
+
+func TestPoolKeepsAnInstanceWhoseCallerGaveUp(t *testing.T) {
+	var hits atomic.Int32
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if hits.Add(1) == 1 {
+			select {
+			case <-release:
+			case <-r.Context().Done():
+			}
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, recordedShape)
+	}))
+	defer srv.Close()
+	defer close(release)
+	pool := NewSearxPool([]string{srv.URL}, srv.Client(), PoolOptions{})
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
+	defer cancel()
+	if _, err := pool.Search(ctx, "open source search", 10); err == nil {
+		t.Fatal("a cancelled search must fail")
+	}
+	got, err := pool.Search(context.Background(), "open source search", 10)
+	if err != nil || len(got) != 2 {
+		t.Fatalf("the instance was parked by a caller that gave up: %d results, err %v", len(got), err)
+	}
+}

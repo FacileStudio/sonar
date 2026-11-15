@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/FacileStudio/sonar/websearch"
 )
@@ -14,12 +15,17 @@ type perEngine struct {
 	fakeEngines
 	hits   map[string]int
 	broken map[string]bool
+	stuck  map[string]bool
 	called []string
 }
 
-func (p *perEngine) Search(_ context.Context, _ string, _ int, include []string) ([]websearch.Result, error) {
+func (p *perEngine) Search(ctx context.Context, _ string, _ int, include []string) ([]websearch.Result, error) {
 	name := fmt.Sprint(include)
 	p.called = append(p.called, name)
+	if p.stuck[name] {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
 	if p.broken[name] {
 		return nil, errors.New("down")
 	}
@@ -84,5 +90,42 @@ func TestWebChainTriesFreeEnginesBeforePaidOnes(t *testing.T) {
 		if _, err := h.svc.Search(context.Background(), 1, Query{Q: "cats", Kind: KindWeb}); err != nil || !reflect.DeepEqual(engines.called, tc.want) {
 			t.Fatalf("%s: called %v, want %v, err %v", tc.name, engines.called, tc.want, err)
 		}
+	}
+}
+
+func TestWebChainCutsASlowFreeEngineShort(t *testing.T) {
+	old := freeStageTimeout
+	freeStageTimeout = 20 * time.Millisecond
+	defer func() { freeStageTimeout = old }()
+	engines := &perEngine{hits: map[string]int{"[brave]": 8},
+		stuck: map[string]bool{"[searxng]": true, "[ddg]": true}}
+	h := newHarness(10, nil)
+	h.svc.Instance = engines
+	h.svc.Web = Chain{Engines: []string{"searxng", "ddg", "brave", "tavily"}, Enough: 5}
+	start := time.Now()
+	response, err := h.svc.Search(context.Background(), 1, Query{Q: "cats", Kind: KindWeb})
+	want := []string{"[searxng]", "[ddg]", "[brave]"}
+	if err != nil || !reflect.DeepEqual(engines.called, want) || len(response.Web) != 8 {
+		t.Fatalf("called %v, want %v, %d results, err %v", engines.called, want, len(response.Web), err)
+	}
+	if took := time.Since(start); took > 2*time.Second {
+		t.Fatalf("two stuck free engines held the search for %s", took)
+	}
+}
+
+func TestWebChainLimitsAFreeEngineEvenWhenItIsLast(t *testing.T) {
+	old := freeStageTimeout
+	freeStageTimeout = 20 * time.Millisecond
+	defer func() { freeStageTimeout = old }()
+	engines := &perEngine{stuck: map[string]bool{"[ddg]": true}}
+	h := newHarness(10, nil)
+	h.svc.Instance = engines
+	h.svc.Web = Chain{Engines: []string{"ddg"}, Enough: 5}
+	start := time.Now()
+	if _, err := h.svc.Search(context.Background(), 1, Query{Q: "cats", Kind: KindWeb}); err == nil {
+		t.Fatal("a stuck engine with nothing behind it must fail the search")
+	}
+	if took := time.Since(start); took > 2*time.Second {
+		t.Fatalf("a stuck free engine held the search for %s", took)
 	}
 }

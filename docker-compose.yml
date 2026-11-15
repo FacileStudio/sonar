@@ -24,6 +24,41 @@ services:
       retries: 5
       start_period: 30s
       start_interval: 1s
+  # The free engine the web chain asks first. Reachable only from this
+  # compose's own network: no published port, no Traefik label, no route.
+  # Its logs are switched off, because SearXNG prints the upstream request
+  # URL, query included, when an engine fails, and the host's log collectors
+  # tail every container. To debug it, run the image by hand.
+  sonar-searxng:
+    restart: unless-stopped
+    build:
+      context: deploy/searxng
+      dockerfile: Dockerfile
+    environment:
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?SEARXNG_SECRET is required}
+    expose:
+      - '8080'
+    networks:
+      - default
+    logging:
+      driver: none
+    read_only: true
+    tmpfs:
+      - /etc/searxng
+      - /var/cache/searxng:uid=977,gid=977
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 1s
   sonar-api:
     restart: unless-stopped
     build:
@@ -69,6 +104,9 @@ services:
       SONAR_FIRECRAWL_KEY: ${SONAR_FIRECRAWL_KEY:-}
       SONAR_SERPAPI_KEY: ${SONAR_SERPAPI_KEY:-}
       SONAR_SEARXNG: ${SONAR_SEARXNG:-}
+      SONAR_SEARXNG_POOL: ${SONAR_SEARXNG_POOL:-}
+      SONAR_SEARXNG_POOL_TRIES: ${SONAR_SEARXNG_POOL_TRIES:-2}
+      SONAR_FREE_ENGINES: ${SONAR_FREE_ENGINES:-}
       SONAR_SUGGEST_URL: ${SONAR_SUGGEST_URL:-}
       SONAR_IMAGE_KEY: ${SONAR_IMAGE_KEY:-}
       SONAR_WEB_ENGINES: ${SONAR_WEB_ENGINES:-}

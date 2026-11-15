@@ -37,7 +37,8 @@ type poolMember struct {
 // SearxPool searches a list of SearXNG instances, self-hosted or public, one
 // at a time. Each search starts at the next instance in rotation and tries at
 // most MaxTries of them. An instance that blocks, rate-limits, answers with a
-// page instead of JSON or fails is parked by its own circuit breaker. The
+// page instead of JSON or fails is parked by its own circuit breaker; a search
+// its caller gave up on parks nothing. The
 // query travels only in a POST body, and no error carries it or a request URL.
 type SearxPool struct {
 	Client  *http.Client
@@ -118,11 +119,13 @@ func (p *SearxPool) attempt(ctx context.Context, m *poolMember, query string, co
 	if err := m.throttle.Wait(ctx); err != nil {
 		return nil, fmt.Errorf("%w: wait cancelled", ErrTransient)
 	}
-	ctx, cancel := context.WithTimeout(ctx, p.opts.AttemptTimeout)
+	attempt, cancel := context.WithTimeout(ctx, p.opts.AttemptTimeout)
 	defer cancel()
-	hits, err := p.call(ctx, m.base, query)
+	hits, err := p.call(attempt, m.base, query)
 	if err != nil {
-		m.breaker.Trip()
+		if ctx.Err() == nil {
+			m.breaker.Trip()
+		}
 		return nil, err
 	}
 	limit := count

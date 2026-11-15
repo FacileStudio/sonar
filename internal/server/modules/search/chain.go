@@ -11,6 +11,8 @@ import (
 
 const stageTimeout = 6 * time.Second
 
+var freeStageTimeout = 3 * time.Second
+
 var errEmptyChain = errors.New("search: no engine in the chain is enabled")
 
 // Chain is the hosted web policy on sonar's own keys: engines run one at a
@@ -75,13 +77,20 @@ func (c Chain) search(ctx context.Context, engines Engines, query string, count 
 	return out[:min(len(out), count)], nil
 }
 
+// stage runs engine i under its own time limit. A free engine (SearXNG, a
+// scraper) gets a short turn wherever it sits, so a slow one cannot hold a
+// search back from the keyed engines behind it. The last keyed engine may use
+// whatever is left of the search.
 func (c Chain) stage(ctx context.Context, engines Engines, query string, count, i int) ([]websearch.Result, error) {
-	if i < len(c.Engines)-1 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, stageTimeout)
-		defer cancel()
+	name, wait := c.Engines[i], stageTimeout
+	if strings.HasPrefix(name, "searx") || name == "ddg" || name == "bing" {
+		wait = freeStageTimeout
+	} else if i == len(c.Engines)-1 {
+		wait = searchTimeout
 	}
-	return engines.Search(ctx, query, count, []string{c.Engines[i]})
+	ctx, cancel := context.WithTimeout(ctx, wait)
+	defer cancel()
+	return engines.Search(ctx, query, count, []string{name})
 }
 
 func appendNew(out []websearch.Result, seen map[string]bool, hits []websearch.Result) []websearch.Result {

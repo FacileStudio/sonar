@@ -4,22 +4,41 @@ Goal: spend Brave and Tavily keys less by answering more searches from free engi
 
 ## What the hosted chain can use today
 
-The web chain walks `SONAR_WEB_ENGINES` in order, one engine at a time. It stops once `SONAR_WEB_ENOUGH` (default 5) distinct results are in. An engine that errors, times out (6 seconds, except the last one) or returns too few results passes the turn to the next one. So an order such as `searxng,brave,tavily` already falls back correctly. This is covered by `TestWebChainTriesFreeEnginesBeforePaidOnes`.
+The web chain walks `SONAR_WEB_ENGINES` in order, one engine at a time. It stops once `SONAR_WEB_ENOUGH` (default 5) distinct results are in. An engine that errors, times out (3 seconds for a free engine, 6 for a keyed one, except the last one) or returns too few results passes the turn to the next one. So an order such as `searxng,brave,tavily` already falls back correctly. This is covered by `TestWebChainTriesFreeEnginesBeforePaidOnes`.
 
-Before this branch, one free engine was reachable by env alone:
+One free engine is reachable by env alone:
 
 ```
 SONAR_SEARXNG=https://searx.internal.example
 SONAR_WEB_ENGINES=searxng,brave,tavily
 ```
 
-That needs a SearXNG instance with `json` listed under `search.formats`. With several URLs in `SONAR_SEARXNG` the engines are named `searxng1`, `searxng2` and so on, and each goes into the chain by that name. No such instance exists yet, so today this is a config option, not a running engine.
+That needs a SearXNG instance with `json` listed under `search.formats`. With several URLs in `SONAR_SEARXNG` the engines are named `searxng1`, `searxng2` and so on, and each goes into the chain by that name.
 
 DuckDuckGo (`ddg`) and Bing (`bing`) exist as scrapers in `internal/engines/` but the hosted server could not switch them on: `websearch.Config` only enabled keyed engines and SearXNG. Both scrape from a datacenter IP and are often blocked (DDG answers 202 or 429), so they are best-effort. Their breaker parks them for two minutes after a block.
 
 Engines that need a key and cost money or have a quota: brave, tavily, exa, parallel, linkup, firecrawl, serpapi (Brave and Tavily are the web chain default).
 
-## What this branch adds (all off by default)
+## What production runs
+
+One SearXNG container, `sonar-searxng`, in the same compose as `sonar-api`:
+
+```
+SONAR_SEARXNG=http://sonar-searxng:8080
+SONAR_FREE_ENGINES=ddg
+SONAR_WEB_ENGINES=searxng,ddg,brave,tavily
+SEARXNG_SECRET=<random, read by the SearXNG container>
+```
+
+- Image: `deploy/searxng/Dockerfile` pins an official dated tag (SearXNG is a rolling release with no version numbers; tags are listed at https://hub.docker.com/r/searxng/searxng/tags) and bakes `deploy/searxng/settings.yml` in. To change a setting, edit that file and deploy.
+- Reach: the compose network only. No published port, no Traefik label. The limiter stays off, since nothing but `sonar-api` can call it.
+- Settings: `search.formats` is `json` only (https://docs.searxng.org/admin/settings/settings_search.html), the secret key comes from `$SEARXNG_SECRET` and the limiter is off (https://docs.searxng.org/admin/settings/settings_server.html), `general.debug` is false (https://docs.searxng.org/admin/settings/settings_general.html).
+- Logs: the container has none (`logging: driver: none`). SearXNG has no setting that keeps queries out of its logs. `debug: false` only stops the verbose logging; at its production level (WARNING) it still prints the full upstream URL when an engine request fails, for example `WARNING:searx.network.mojeek: HTTP Request failed: GET https://www.mojeek.com/search?q=...` (seen on 2026-11-15 with the pinned image). The host's log collectors tail every container, so the only safe level is no log at all. The Granian access log is off by default and pinned off (`GRANIAN_LOG_ACCESS_ENABLED=false`). Sonar posts the query in a form body, so it is in no URL on the way in either.
+- Engines: mojeek, startpage and yahoo, the key-less engines that answered from the server's address on 2026-11-15. Google and Qwant denied it, DuckDuckGo answered with a captcha, Bing returned nothing. SearXNG's Brave scraper is left out: Sonar is a Brave API customer.
+- Time: SearXNG gives its engines 2 seconds (2.5 at most), and the chain gives a free engine 3 seconds before moving on, so a search reaches Brave after 6 seconds at worst when both free engines hang. A blocked `ddg` is parked for two minutes and costs nothing while parked.
+- Debugging: run the image by hand with a throwaway `SEARXNG_SECRET` and read its output there. `docker inspect` still shows the health status of the production container.
+
+## What the pool and the scraper switch add (all off by default)
 
 | Env | Effect |
 |---|---|
