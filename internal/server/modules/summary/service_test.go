@@ -1,12 +1,17 @@
 package summary
 
 import (
+	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"unicode/utf8"
 
+	"github.com/FacileStudio/porte/exchange"
+	"github.com/FacileStudio/tronc/bulle"
 	troncerrors "github.com/FacileStudio/tronc/errors"
 )
 
@@ -79,17 +84,72 @@ func TestBulleFailures(t *testing.T) {
 func summarizeAgainst(t *testing.T, status int, body string) error {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/ai/summarize" || r.Header.Get("X-Bulle-Acting-For") != "a@example.com" {
-			t.Errorf("got %s acting for %q", r.URL.Path, r.Header.Get("X-Bulle-Acting-For"))
-		}
 		w.WriteHeader(status)
-		_, _ = w.Write([]byte(body))
+		reply(t, w, body)
 	}))
 	defer srv.Close()
-	writer, err := NewBulle(srv.URL, "key")
+	writer, err := NewBulle(srv.URL, tokenOf("token"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = writer.Summarize(t.Context(), "a@example.com", Request{Query: "q"})
+	_, err = writer.Summarize(t.Context(), Request{Query: "q"})
 	return err
+}
+
+func reply(t *testing.T, w io.Writer, body string) {
+	t.Helper()
+	if _, err := io.WriteString(w, body); err != nil {
+		t.Error(err)
+	}
+}
+
+func tokenOf(token string) bulle.TokenSource {
+	return func(context.Context) (string, error) { return token, nil }
+}
+
+func TestWriterSendsTheExchangedTokenAndDecodesTheSummary(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/ai/summarize" || r.Header.Get("Authorization") != "Bearer exchanged" {
+			t.Errorf("got %s with authorization %q", r.URL.Path, r.Header.Get("Authorization"))
+		}
+		if got := r.Header.Get("X-Bulle-Acting-For"); got != "" {
+			t.Errorf("acting-for header is %q, want none", got)
+		}
+		var in bulle.SummarizeRequest
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil || in.Query != "q" || len(in.Sources) != 1 || in.Sources[0].Snippet != "s" {
+			t.Errorf("request body %+v, err %v", in, err)
+		}
+		reply(t, w, `{"summary":"It works [1].","citations":[0],"model":"m"}`)
+	}))
+	defer srv.Close()
+	writer, err := NewBulle(srv.URL, tokenOf("exchanged"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := writer.Summarize(t.Context(), Request{Query: "q", Sources: []Source{{Title: "t", URL: "https://example.com", Snippet: "s"}}})
+	if err != nil || got.Summary != "It works [1]." || got.Model != "m" {
+		t.Fatalf("got %+v, %v", got, err)
+	}
+}
+
+func TestReconnectAsksToSignInAgain(t *testing.T) {
+	writer, err := NewBulle("https://bulle.example", func(context.Context) (string, error) {
+		return "", exchange.ErrReconnect
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = writer.Summarize(t.Context(), Request{Query: "q"})
+	mapped, ok := failure(err).(*troncerrors.Error)
+	if !ok || troncerrors.Status(mapped) >= http.StatusInternalServerError || !strings.Contains(mapped.Message, "Sign in again") {
+		t.Fatalf("reconnect mapped to %+v", mapped)
+	}
+}
+
+func TestRateLimitPassesBulleMessageThrough(t *testing.T) {
+	body := `{"error":{"code":"rate_limited","message":"Monthly AI allowance used up; resets on 1 December."}}`
+	mapped, ok := failure(summarizeAgainst(t, http.StatusTooManyRequests, body)).(*troncerrors.Error)
+	if !ok || troncerrors.Status(mapped) != http.StatusTooManyRequests || mapped.Message != "Monthly AI allowance used up; resets on 1 December." {
+		t.Fatalf("429 mapped to %+v", mapped)
+	}
 }

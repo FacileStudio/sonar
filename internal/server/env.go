@@ -40,7 +40,6 @@ type Config struct {
 	ImageKey     []byte
 	Summary      bool
 	BulleURL     string
-	BulleKey     string
 	MCPResource  string
 }
 
@@ -71,7 +70,6 @@ func Load() (Config, error) {
 		ImageKey:    []byte(troncenv.String("SONAR_IMAGE_KEY", "")),
 		Summary:     summary,
 		BulleURL:    troncenv.String("BULLE_URL", ""),
-		BulleKey:    troncenv.String("SONAR_BULLE_KEY", ""),
 		MCPResource: troncenv.String("MCP_RESOURCE", ""),
 	}
 	return cfg, cfg.loadOIDC()

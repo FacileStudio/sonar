@@ -24,7 +24,7 @@ Proposed plan values: free 20, Pro 500, Studio 2000. They are set in Ardoise (bi
 
 ## AI summary
 
-`POST /api/summary` takes only `{"query"}`. sonar finds the sources itself on its summary engines (Tavily, then Exa, then Parallel, never Brave) and asks Bulle to summarize them. It needs `ai.access`, counts as one search, and is off unless `SONAR_AI_SUMMARY=true`, `BULLE_URL` and `SONAR_BULLE_KEY` are set. See [ai-summary.md](ai-summary.md).
+`POST /api/summary` takes only `{"query"}`. sonar finds the sources itself on its summary engines (Tavily, then Exa, then Parallel, never Brave) and asks Bulle to summarize them. It needs `ai.access`, counts as one search, and is off unless `SONAR_AI_SUMMARY=true` and `BULLE_URL` are set with OIDC configured. See [ai-summary.md](ai-summary.md).
 
 ## MCP
 
@@ -54,7 +54,7 @@ Both tools are read-only and open-world. Every call spends one search of the dai
 | `SONAR_WEB_ENGINES` | The web chain, default `brave,tavily`; `all` runs every engine at once. |
 | `SONAR_WEB_ENOUGH` | Results that end a chain early, default 5. |
 | `SONAR_SUMMARY_ENGINES` | Where summary sources come from, default `tavily,exa,parallel`. `brave` is always dropped. |
-| `SONAR_AI_SUMMARY`, `BULLE_URL`, `SONAR_BULLE_KEY` | The AI summary, off by default. |
+| `SONAR_AI_SUMMARY`, `BULLE_URL` | The AI summary, off by default. |
 | `MCP_RESOURCE` | The MCP server's canonical URL, as Registre's seed declares it. Empty turns `/mcp` off. |
 | `TRUSTED_PROXIES` | `private,cloudflare` behind Traefik and Cloudflare. |
 

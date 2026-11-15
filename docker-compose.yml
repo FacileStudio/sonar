@@ -76,7 +76,6 @@ services:
       SONAR_SUMMARY_ENGINES: ${SONAR_SUMMARY_ENGINES:-}
       SONAR_AI_SUMMARY: ${SONAR_AI_SUMMARY:-false}
       BULLE_URL: ${BULLE_URL:-}
-      SONAR_BULLE_KEY: ${SONAR_BULLE_KEY:-}
     healthcheck:
       test: ["CMD", "/sonar", "healthcheck"]
       interval: 30s

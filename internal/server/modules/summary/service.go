@@ -2,7 +2,6 @@ package summary
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -52,9 +51,9 @@ type Access interface {
 	CheckAI(ctx context.Context, userID int64) error
 }
 
-// Writer produces the summary for the person behind email.
+// Writer produces the summary for the person authenticated on ctx.
 type Writer interface {
-	Summarize(ctx context.Context, actingFor string, req Request) (Response, error)
+	Summarize(ctx context.Context, req Request) (Response, error)
 }
 
 // Sources finds the results a summary may cite, spending the user's quota.
@@ -62,7 +61,6 @@ type Sources func(ctx context.Context, userID int64, query string, count int) ([
 
 // Service gates and runs summaries. A nil Writer means the feature is off.
 type Service struct {
-	DB      *sql.DB
 	Access  Access
 	Writer  Writer
 	Sources Sources
@@ -88,7 +86,7 @@ func (s *Service) handle(w http.ResponseWriter, r *http.Request) {
 		httpjson.WriteError(w, err)
 		return
 	}
-	response, err := s.run(r.Context(), identity.UserID, body)
+	response, err := s.run(r.Context(), body)
 	if err != nil {
 		httpjson.WriteError(w, err)
 		return
@@ -97,12 +95,8 @@ func (s *Service) handle(w http.ResponseWriter, r *http.Request) {
 	httpjson.WriteJSON(w, http.StatusOK, response)
 }
 
-func (s *Service) run(ctx context.Context, userID int64, body Request) (Response, error) {
-	var email string
-	if err := s.DB.QueryRowContext(ctx, `SELECT email FROM porte_users WHERE id = $1`, userID).Scan(&email); err != nil {
-		return Response{}, troncerrors.Internal("failed to read your account", err)
-	}
-	response, err := s.Writer.Summarize(ctx, email, body)
+func (s *Service) run(ctx context.Context, body Request) (Response, error) {
+	response, err := s.Writer.Summarize(ctx, body)
 	if err != nil {
 		return Response{}, failure(err)
 	}
