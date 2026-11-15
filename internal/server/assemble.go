@@ -43,7 +43,7 @@ func assemble(ctx context.Context, db *sql.DB, cfg Config, log *slog.Logger) (*a
 		return nil, err
 	}
 	instance, err := websearch.New(websearch.Config{Keys: cfg.Engines.Keys, Searxng: cfg.Engines.Searxng,
-		Timeout: 12 * time.Second})
+		Pool: cfg.Engines.Pool, PoolTries: cfg.Engines.Tries, Free: cfg.Engines.Free, Timeout: 12 * time.Second})
 	if err != nil {
 		return nil, err
 	}

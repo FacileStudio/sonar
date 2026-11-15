@@ -27,15 +27,17 @@ type EngineDef struct {
 // Config holds the engine map, the user's SearXNG instances, and the
 // block-minimizing tuning knobs.
 type Config struct {
-	Engines         map[string]*EngineDef `yaml:"engines"`
-	Searxng         []string              `yaml:"searxng"`
-	SearxngPriority int                   `yaml:"searxngPriority"`
-	DefaultCount    int                   `yaml:"count"`
-	TimeoutSeconds  int                   `yaml:"timeout"`
-	Pacing          `yaml:",inline"`
-	CacheDir        string        `yaml:"cacheDir"`
-	CacheTTL        time.Duration `yaml:"cacheTTL"`
-	Fetch           FetchDef      `yaml:"fetch"`
+	Engines          map[string]*EngineDef `yaml:"engines"`
+	Searxng          []string              `yaml:"searxng"`
+	SearxngPriority  int                   `yaml:"searxngPriority"`
+	SearxngPool      []string              `yaml:"searxngPool"`
+	SearxngPoolTries int                   `yaml:"searxngPoolTries"`
+	DefaultCount     int                   `yaml:"count"`
+	TimeoutSeconds   int                   `yaml:"timeout"`
+	Pacing           `yaml:",inline"`
+	CacheDir         string        `yaml:"cacheDir"`
+	CacheTTL         time.Duration `yaml:"cacheTTL"`
+	Fetch            FetchDef      `yaml:"fetch"`
 }
 
 // Pacing holds the block-minimizing knobs. It sits inline in the YAML, so the

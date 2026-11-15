@@ -24,14 +24,21 @@ const defaultCount = 10
 
 // Config selects the engines a Client runs. Keys maps a keyed engine name
 // (tavily, parallel, exa, brave, ...) to its API key; an empty key leaves the
-// engine off. Searxng lists self-hosted SearXNG base URLs. Timeout bounds one
+// engine off. Searxng lists self-hosted SearXNG base URLs, one engine each. Pool lists
+// SearXNG instances, public ones included, that one engine named "searxpool"
+// rotates through, at most PoolTries per search (two when zero). Free names
+// key-less scrape engines to switch on (ddg, bing), which datacenter IPs
+// often get blocked on. Timeout bounds one
 // engine request and CacheTTL how long results are reused; zero keeps sonar's
 // defaults. Brave results are never cached, whatever CacheTTL says.
 type Config struct {
-	Keys     map[string]string
-	Searxng  []string
-	Timeout  time.Duration
-	CacheTTL time.Duration
+	Keys      map[string]string
+	Searxng   []string
+	Pool      []string
+	PoolTries int
+	Free      []string
+	Timeout   time.Duration
+	CacheTTL  time.Duration
 }
 
 // Result is one ranked search hit.
@@ -96,11 +103,26 @@ func sonarConfig(cfg Config) (*config.Config, []string, error) {
 	if cfg.CacheTTL > 0 {
 		sc.CacheTTL = cfg.CacheTTL
 	}
+	names, err := enableKeyed(sc, cfg.Keys)
+	if err != nil {
+		return nil, nil, err
+	}
+	free, err := enableFree(sc, cfg.Free)
+	if err != nil {
+		return nil, nil, err
+	}
+	names = append(names, free...)
+	names = append(names, addSearxng(sc, cfg)...)
+	sort.Strings(names)
+	return sc, names, nil
+}
+
+func enableKeyed(sc *config.Config, keys map[string]string) ([]string, error) {
 	var names []string
-	for name, key := range cfg.Keys {
+	for name, key := range keys {
 		def, ok := sc.Engines[name]
 		if !ok || !search.NeedsKey(name) {
-			return nil, nil, fmt.Errorf("websearch: unknown keyed engine %q", name)
+			return nil, fmt.Errorf("websearch: unknown keyed engine %q", name)
 		}
 		if key == "" {
 			continue
@@ -108,12 +130,20 @@ func sonarConfig(cfg Config) (*config.Config, []string, error) {
 		def.Enabled, def.APIKey = true, key
 		names = append(names, name)
 	}
+	return names, nil
+}
+
+func addSearxng(sc *config.Config, cfg Config) []string {
+	var names []string
+	if len(cfg.Pool) > 0 {
+		sc.SearxngPool, sc.SearxngPoolTries = append([]string(nil), cfg.Pool...), cfg.PoolTries
+		names = append(names, engines.PoolName)
+	}
 	sc.Searxng = append([]string(nil), cfg.Searxng...)
 	for i := range sc.Searxng {
 		names = append(names, search.SearxngName(sc.Searxng, i))
 	}
-	sort.Strings(names)
-	return sc, names, nil
+	return names
 }
 
 func convert(hits []engines.Result) []Result {
@@ -122,4 +152,17 @@ func convert(hits []engines.Result) []Result {
 		out = append(out, Result{Title: h.Title, URL: h.URL, Snippet: h.Snippet, Engine: h.Engine})
 	}
 	return out
+}
+
+func enableFree(sc *config.Config, free []string) ([]string, error) {
+	var names []string
+	for _, name := range free {
+		def, ok := sc.Engines[name]
+		if !ok || search.NeedsKey(name) || !search.IsScrape(name) {
+			return nil, fmt.Errorf("websearch: %q is not a free scrape engine", name)
+		}
+		def.Enabled = true
+		names = append(names, name)
+	}
+	return names, nil
 }

@@ -39,3 +39,15 @@ func TestSearxngListBecomesDistinctEngineUnits(t *testing.T) {
 		t.Fatalf("prio = %d, want searxngPriority %d", built[0].prio, cfg.SearxngPriority)
 	}
 }
+
+func TestSearxngPoolIsOneUnitAndOffByDefault(t *testing.T) {
+	cfg := config.Default()
+	if built := buildEngineUnits(cfg, httpc.Client(time.Second)); len(built) != 0 {
+		t.Fatalf("default config built %d units, want none", len(built))
+	}
+	cfg.SearxngPool = []string{"https://a.example", "https://b.example"}
+	built := buildEngineUnits(cfg, httpc.Client(time.Second))
+	if len(built) != 1 || built[0].name != "searxpool" || built[0].scrape || built[0].prio != cfg.SearxngPriority {
+		t.Fatalf("built %+v, want one searxpool unit", built)
+	}
+}

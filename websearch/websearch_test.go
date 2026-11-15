@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -56,5 +57,21 @@ func TestKeysEnableOnlyNamedEngines(t *testing.T) {
 	}
 	if _, err := New(Config{Keys: map[string]string{"bing": "k"}}); err == nil {
 		t.Fatal("a key for a keyless engine was accepted")
+	}
+}
+
+func TestPoolAndFreeEnginesAreOptIn(t *testing.T) {
+	c, err := New(Config{Keys: map[string]string{"tavily": "k"}})
+	if err != nil || len(c.Engines()) != 1 {
+		t.Fatalf("default engines %v, err %v", c.Engines(), err)
+	}
+	c, err = New(Config{Pool: []string{"https://a.example"}, Free: []string{"ddg"}})
+	if err != nil || strings.Join(c.Engines(), ",") != "ddg,searxpool" {
+		t.Fatalf("engines %v, err %v", c.Engines(), err)
+	}
+	for _, bad := range []string{"brave", "nope", "rod"} {
+		if _, err := New(Config{Free: []string{bad}}); err == nil {
+			t.Fatalf("free engine %q must be refused", bad)
+		}
 	}
 }

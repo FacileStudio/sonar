@@ -63,3 +63,26 @@ func TestSummarySourcesNeverReachBrave(t *testing.T) {
 		t.Fatalf("called %v, %d hits, used %d, err %v", engines.called, len(hits), h.counter.used, err)
 	}
 }
+
+func TestWebChainTriesFreeEnginesBeforePaidOnes(t *testing.T) {
+	cases := []struct {
+		name string
+		free int
+		down bool
+		want []string
+	}{
+		{"free is enough", 7, false, []string{"[searxpool]"}},
+		{"free is thin", 2, false, []string{"[searxpool]", "[brave]"}},
+		{"free is down", 0, true, []string{"[searxpool]", "[brave]"}},
+	}
+	for _, tc := range cases {
+		engines := &perEngine{hits: map[string]int{"[searxpool]": tc.free, "[brave]": 8, "[tavily]": 4},
+			broken: map[string]bool{"[searxpool]": tc.down}}
+		h := newHarness(10, nil)
+		h.svc.Instance = engines
+		h.svc.Web = Chain{Engines: []string{"searxpool", "brave", "tavily"}, Enough: 5}
+		if _, err := h.svc.Search(context.Background(), 1, Query{Q: "cats", Kind: KindWeb}); err != nil || !reflect.DeepEqual(engines.called, tc.want) {
+			t.Fatalf("%s: called %v, want %v, err %v", tc.name, engines.called, tc.want, err)
+		}
+	}
+}

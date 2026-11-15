@@ -49,9 +49,12 @@ Both tools are read-only and open-world. Every call spends one search of the dai
 | `PORTE_TOKEN_KEY` | 32-byte hex or base64 key: seals porte tokens and user engine keys. |
 | `SONAR_<ENGINE>_KEY` | sonar's own keys: brave, tavily, exa, parallel, linkup, firecrawl, serpapi. Images and news need Brave. |
 | `SONAR_SEARXNG` | Comma-separated SearXNG instances. |
+| `SONAR_SEARXNG_POOL` | SearXNG instances one engine, `searxpool`, rotates through. Off by default. See docs/free-engines.md. |
+| `SONAR_SEARXNG_POOL_TRIES` | Instances one search may try, default 2. |
+| `SONAR_FREE_ENGINES` | Key-less scrape engines to switch on: `ddg`, `bing`. Off by default. |
 | `SONAR_SUGGEST_URL` | Suggestion endpoint (OpenSearch format). Default DuckDuckGo; `off` disables. |
 | `SONAR_IMAGE_KEY` | Pins the image-signing key (32+ bytes); random per boot otherwise. |
-| `SONAR_WEB_ENGINES` | The web chain, default `brave,tavily`; `all` runs every engine at once. |
+| `SONAR_WEB_ENGINES` | The web chain, default `brave,tavily` (free engines first: `searxpool,ddg,brave,tavily`); `all` runs every engine at once. |
 | `SONAR_WEB_ENOUGH` | Results that end a chain early, default 5. |
 | `SONAR_SUMMARY_ENGINES` | Where summary sources come from, default `tavily,exa,parallel`. `brave` is always dropped. |
 | `SONAR_AI_SUMMARY`, `BULLE_URL` | The AI summary, off by default. |
