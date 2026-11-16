@@ -17,7 +17,8 @@ const maxQuery = 400
 
 // Service runs searches for signed-in users. A user who brought keys for the
 // tab searches on them and spends no quota; everyone else spends one search
-// of their daily quota on sonar's own keys.
+// of their daily quota on sonar's own keys. Stats, when set, counts how each
+// of sonar's own engines answered, without the query or the user.
 type Service struct {
 	Instance Engines
 	Web      Chain
@@ -27,6 +28,7 @@ type Service struct {
 	Quota    Quota
 	Keys     Keys
 	Signer   *imgsig.Signer
+	Stats    Stats
 	Logger   *slog.Logger
 }
 

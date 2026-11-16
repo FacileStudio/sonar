@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/FacileStudio/sonar/internal/server/docs"
+	"github.com/FacileStudio/sonar/internal/server/modules/admin"
 	"github.com/FacileStudio/sonar/internal/server/modules/auth"
 	"github.com/FacileStudio/sonar/internal/server/modules/img"
 	"github.com/FacileStudio/sonar/internal/server/modules/keys"
@@ -41,6 +42,7 @@ func buildRouter(a *app, cfg Config, opts Options, db *sql.DB) chi.Router {
 			UserKey: userKey})
 		keys.RegisterRoutes(r, a.ring, requireAuth)
 		summary.RegisterRoutes(r, a.summary, requireAuth, userKey)
+		admin.RegisterRoutes(r, a.stats, requireAuth)
 	})
 	if a.mcp != nil {
 		mcp.RegisterRoutes(router, a.mcp)

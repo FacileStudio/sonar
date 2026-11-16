@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/FacileStudio/porte"
+	"github.com/FacileStudio/sonar/internal/server/enginestats"
 	"github.com/FacileStudio/sonar/internal/server/imgsig"
 	"github.com/FacileStudio/sonar/internal/server/keyring"
 	"github.com/FacileStudio/sonar/internal/server/modules/auth"
@@ -28,6 +29,7 @@ type app struct {
 	ring    *keyring.Ring
 	signer  *imgsig.Signer
 	counter *quota.Counter
+	stats   *enginestats.Store
 	mcp     *mcp.Service
 	log     *slog.Logger
 }
@@ -54,9 +56,9 @@ func assemble(ctx context.Context, db *sql.DB, cfg Config, log *slog.Logger) (*a
 	ring := &keyring.Ring{DB: db, Sealer: cfg.Sealer}
 	counter := &quota.Counter{DB: db}
 	a := &app{kits: kits, ring: ring, signer: signer, counter: counter, log: log,
-		suggest: search.NewSuggester(cfg.SuggestURL)}
+		stats: &enginestats.Store{DB: db}, suggest: search.NewSuggester(cfg.SuggestURL)}
 	a.search = &search.Service{Instance: instance, ForKeys: forKeys, Plans: gate, Quota: counter, Keys: ring,
-		Signer: signer, Logger: log, Web: cfg.Engines.Web.Within(instance.Engines()),
+		Signer: signer, Stats: a.stats, Logger: log, Web: cfg.Engines.Web.Within(instance.Engines()),
 		Sources: cfg.Engines.Sources.Within(instance.Engines())}
 	log.Info("search engines ready", slog.Any("engines", instance.Engines()),
 		slog.Any("web_chain", a.search.Web.Engines), slog.Any("summary_engines", a.search.Sources.Engines))

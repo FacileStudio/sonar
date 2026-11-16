@@ -17,7 +17,7 @@ func Reference(version string) apiref.Config {
 			"each search on sonar's own engine keys counts once against a daily quota. MCP clients use " +
 			"POST /mcp, outside /api, with a Registre token for https://sonar.facile.studio/mcp.",
 		Servers:  []string{"/api"},
-		Registry: apiref.Registry{Modules: []apiref.Module{authModule(), searchModule(), keysModule(), summaryModule()}},
+		Registry: apiref.Registry{Modules: []apiref.Module{authModule(), searchModule(), keysModule(), summaryModule(), adminModule()}},
 	}
 }
 
