@@ -4,6 +4,12 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.23.1] - 2026-11-16
+
+### Changed
+
+- build(client): muse v0.32.0. Tabs are 36px tall on pointer devices and 44px on touch. The avatar menu no longer carries language, theme or the plan row; Settings, Preferences holds them, with the plan link.
+
 ## [v0.23.0] - 2026-11-16
 
 ### Added

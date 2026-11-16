@@ -56,6 +56,7 @@
 					/>
 				{:else if current === 'preferences'}
 					<PreferencesSection
+						subscription={{ href: 'https://sso.facile.studio/spaces' }}
 						theme={theme.mode}
 						onThemeChange={(next) => theme.set(next as ThemeMode)}
 						onLocaleChange={rememberLocale}
