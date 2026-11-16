@@ -13,11 +13,13 @@ func adminModule() apiref.Module {
 			"few, and a later engine completed the answer), failed (error, block, captcha or nothing returned) and " +
 			"timed_out. period adds the days up per kind, with each engine's share of the answered searches and the " +
 			"split between free engines (no API key) and paid ones. No query, URL or user is stored or returned.",
-		Auth:         session + " with the Registre role " + admin.Role,
+		Auth: session + " of an administrator: a verified email listed in SONAR_ADMINS, or the Registre role " +
+			admin.Role,
 		QueryParams:  []apiref.Field{{Name: "days", Type: "integer", Description: "1 to 90 UTC days ending today, default 7."}},
 		ResponseBody: admin.EngineStats{},
 		Errors: []apiref.Error{authError,
-			{Status: 403, Code: "permission_denied", Description: "The session does not hold the admin role."},
+			{Status: 403, Code: "permission_denied", Description: "The account's verified email is not on " +
+				"SONAR_ADMINS and the session does not hold the admin role. An empty SONAR_ADMINS refuses everyone."},
 			{Status: 400, Code: "invalid_argument", Description: "days is not between 1 and 90."}},
 	}
 	return apiref.Module{

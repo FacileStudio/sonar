@@ -44,6 +44,7 @@ type Config struct {
 	Summary      bool
 	BulleURL     string
 	MCPResource  string
+	Admins       []string
 }
 
 // Load reads and validates the environment.
@@ -74,6 +75,7 @@ func Load() (Config, error) {
 		Summary:     summary,
 		BulleURL:    troncenv.String("BULLE_URL", ""),
 		MCPResource: troncenv.String("MCP_RESOURCE", ""),
+		Admins:      troncenv.List("SONAR_ADMINS"),
 	}
 	return cfg, cfg.loadOIDC()
 }

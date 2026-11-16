@@ -42,7 +42,7 @@ func buildRouter(a *app, cfg Config, opts Options, db *sql.DB) chi.Router {
 			UserKey: userKey})
 		keys.RegisterRoutes(r, a.ring, requireAuth)
 		summary.RegisterRoutes(r, a.summary, requireAuth, userKey)
-		admin.RegisterRoutes(r, a.stats, requireAuth)
+		admin.RegisterRoutes(r, a.stats, admin.Admins{DB: db, Emails: cfg.Admins}, requireAuth)
 	})
 	if a.mcp != nil {
 		mcp.RegisterRoutes(router, a.mcp)
