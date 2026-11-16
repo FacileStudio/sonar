@@ -22,7 +22,7 @@ Go 1.26.10 or later is required (`go.mod`). The client needs bun 1.4 or later
 - `websearch/` — public Go library over `internal/search`. Keys only from its `Config`; never reads config files, env or tiroir.
 - `internal/engines/` — one file per search engine (brave, tavily, exa, searxng, bing, ddg, etc.). Each engine implements a common result interface.
 
-- `internal/server/` — `sonar serve`, the hosted service: `modules/<feature>/router.go` per HTTP module (auth, search, img, keys, summary, opensearch), plus quota, plans, keyring, bangs and migrations. `apps/client/` is its SvelteKit client (muse). See docs/hosted.md.
+- `internal/server/` — `sonar serve`, the hosted service: `modules/<feature>/router.go` per HTTP module (auth, search, img, keys, summary, opensearch, admin), plus quota, enginestats, plans, keyring, bangs and migrations. `apps/client/` is its SvelteKit client (muse). See docs/hosted.md.
 
 No external imports from `internal/` are allowed outside this module.
 

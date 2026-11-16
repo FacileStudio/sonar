@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FacileStudio/sonar/internal/server/enginestats"
 	"github.com/FacileStudio/sonar/websearch"
 	troncerrors "github.com/FacileStudio/tronc/errors"
 )
@@ -27,6 +28,9 @@ func (s *Service) run(ctx context.Context, engines Engines, q Query, own bool) (
 	default:
 		response.Web, err = s.web(ctx, engines, q, own)
 	}
+	if !own {
+		s.recordVertical(ctx, q.Kind, len(response.Images)+len(response.News), err)
+	}
 	return response, engineError(err)
 }
 
@@ -36,7 +40,9 @@ func (s *Service) web(ctx context.Context, engines Engines, q Query, own bool) (
 	if own || len(q.Engines) > 0 || len(s.Web.Engines) == 0 {
 		hits, err = engines.Search(ctx, q.Q, q.Count, q.Engines)
 	} else {
-		hits, err = s.Web.search(ctx, engines, q.Q, q.Count)
+		var tried []enginestats.Attempt
+		hits, tried, err = s.Web.search(ctx, engines, q.Q, q.Count)
+		s.record(ctx, string(KindWeb), tried)
 	}
 	out := make([]WebResult, 0, len(hits))
 	for _, h := range hits {

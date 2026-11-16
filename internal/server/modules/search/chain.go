@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FacileStudio/sonar/internal/server/enginestats"
 	"github.com/FacileStudio/sonar/websearch"
 )
 
@@ -50,47 +51,55 @@ func (c Chain) Without(engine string) Chain {
 	return kept
 }
 
-func (c Chain) search(ctx context.Context, engines Engines, query string, count int) ([]websearch.Result, error) {
+func (c Chain) search(ctx context.Context, engines Engines, query string, count int) ([]websearch.Result, []enginestats.Attempt, error) {
 	if len(c.Engines) == 0 {
-		return nil, errEmptyChain
+		return nil, nil, errEmptyChain
 	}
 	if count <= 0 {
 		count = 10
 	}
 	var out []websearch.Result
+	var tried []enginestats.Attempt
 	seen := map[string]bool{}
 	last := errNoResults
-	for i := range c.Engines {
-		hits, err := c.stage(ctx, engines, query, count, i)
+	for i := 0; i < len(c.Engines) && ctx.Err() == nil; i++ {
+		hits, timedOut, err := c.stage(ctx, engines, query, count, i)
 		if err != nil {
 			last = err
-			continue
 		}
+		before := len(out)
 		out = appendNew(out, seen, hits)
-		if len(out) >= c.Enough || ctx.Err() != nil {
+		enough := len(out) >= c.Enough
+		tried = appendAttempt(tried, c.Engines[i], stageOutcome(ctx, err, timedOut, len(out)-before, enough))
+		if enough {
 			break
 		}
 	}
 	if len(out) == 0 {
-		return nil, last
+		return nil, tried, last
 	}
-	return out[:min(len(out), count)], nil
+	return out[:min(len(out), count)], settle(tried, len(out)), nil
 }
 
 // stage runs engine i under its own time limit. A free engine (SearXNG, a
 // scraper) gets a short turn wherever it sits, so a slow one cannot hold a
 // search back from the keyed engines behind it. The last keyed engine may use
-// whatever is left of the search.
-func (c Chain) stage(ctx context.Context, engines Engines, query string, count, i int) ([]websearch.Result, error) {
+// whatever is left of the search. The second result reports that the turn
+// ran out of time.
+func (c Chain) stage(ctx context.Context, engines Engines, query string, count, i int) ([]websearch.Result, bool, error) {
 	name, wait := c.Engines[i], stageTimeout
-	if strings.HasPrefix(name, "searx") || name == "ddg" || name == "bing" {
+	if FreeEngine(name) {
 		wait = freeStageTimeout
 	} else if i == len(c.Engines)-1 {
 		wait = searchTimeout
 	}
 	ctx, cancel := context.WithTimeout(ctx, wait)
 	defer cancel()
-	return engines.Search(ctx, query, count, []string{name})
+	hits, err := engines.Search(ctx, query, count, []string{name})
+	if err != nil {
+		return nil, errors.Is(ctx.Err(), context.DeadlineExceeded), err
+	}
+	return hits, false, nil
 }
 
 func appendNew(out []websearch.Result, seen map[string]bool, hits []websearch.Result) []websearch.Result {
@@ -121,7 +130,8 @@ func (s *Service) SummarySources(ctx context.Context, userID int64, query string
 	}
 	ctx, cancel := context.WithTimeout(ctx, searchTimeout)
 	defer cancel()
-	hits, err := s.Sources.search(ctx, s.Instance, query, count)
+	hits, tried, err := s.Sources.search(ctx, s.Instance, query, count)
+	s.record(ctx, KindSummary, tried)
 	if err != nil {
 		s.refund(ctx, userID)
 	}

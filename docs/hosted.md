@@ -4,7 +4,7 @@
 
 ## Privacy rules the code enforces
 
-- No search history. The only per-person data is one counter per UTC day (`search_usage`), deleted after two days, plus the engine keys a person saved.
+- No search history. The only per-person data is one counter per UTC day (`search_usage`), deleted after two days, plus the engine keys a person saved. The engine counters (`engine_stats`, below) are per day and engine, never per person or per search.
 - No query in any log. The request logger redacts `q`, `u`, `s` and `url`; engine errors are never logged with their URL; the compose file turns Traefik access logs off for sonar's routers, because the request path carries the query.
 - Brave results are never cached, in the server or the CLI (`engines.Uncacheable`). Other engines keep sonar's in-memory cache.
 - Result images load through `/img`, which serves only URLs sonar signed, only from the public internet (netguard), only real images (sniffed, no SVG), capped at 5 MiB, with no cookies.
@@ -13,6 +13,26 @@
 ## Engine policy
 
 A web search on sonar's own keys walks a chain, one engine at a time: Brave first, then Tavily only when Brave returned fewer than 5 results, errored, or took longer than 6 seconds. A search therefore calls 1 engine, 2 at most. `SONAR_WEB_ENGINES` sets the chain (`all` restores the old run on every engine at once) and `SONAR_WEB_ENOUGH` the threshold. Engines in the chain without a key are skipped; an empty chain falls back to every engine. Image and news searches call Brave only, the one engine sonar has for them. A `!bang` that names an engine, and searches on a person's own keys, run exactly what they ask. The CLI and the `websearch` library keep their own defaults.
+
+## Engine counters
+
+For every search on sonar's own keys, sonar counts how each engine's turn ended, in the table `engine_stats`: one row per UTC day, kind of search (`web`, `images`, `news`, and `summary` for the source search of an AI summary) and engine. A row holds five numbers and nothing else: no query, no URL, no user, no row per search.
+
+| Counter | Meaning |
+|---|---|
+| `tried` | The engine was asked. The sum of the four below. |
+| `answered` | The search stopped on this engine's results. One per search that returned results. |
+| `short` | It returned results, but fewer than `SONAR_WEB_ENOUGH`, and a later engine completed the answer. |
+| `failed` | An error, a block, a captcha, or nothing returned. The dispatcher does not tell these apart. |
+| `timed_out` | It ran out of its time (3 seconds for a free engine, 6 for a keyed one). |
+
+Searches on a person's own keys, searches that name an engine (`!brave`, `engines=`) and `SONAR_WEB_ENGINES=all` are not counted. The write happens after the search, off the request path; a failed write is logged without the query and dropped.
+
+`GET /api/admin/engine-stats?days=7` (1 to 90 days, default 7) returns the daily rows and, per kind over the period, each engine's share of the answered searches and the split between free engines (no API key: SearXNG, `searxpool`, `ddg`, `bing`) and paid ones. It needs a session whose Registre roles hold `admin` and answers 403 to everyone else. Roles reach sonar only when the Registre client `sonar` has the `roles` scope with `admin` among its visible roles and sonar asks for that scope; until both are done the route answers 403 to everyone, and the table can be read in the database:
+
+```sql
+SELECT day, kind, engine, tried, answered, short, failed, timed_out FROM engine_stats ORDER BY day DESC, kind, engine;
+```
 
 ## Quotas
 

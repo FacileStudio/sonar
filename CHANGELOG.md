@@ -7,6 +7,7 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 ### Added
 
 - build(compose): a self-hosted SearXNG (`sonar-searxng`, image built from `deploy/searxng/`) runs beside `sonar-api` on the compose network only: no published port, no route, no container logs. The deployment needs a new `SEARXNG_SECRET`. With `SONAR_SEARXNG=http://sonar-searxng:8080`, `SONAR_FREE_ENGINES=ddg` and `SONAR_WEB_ENGINES=searxng,ddg,brave,tavily`, hosted web searches ask the free engines first and the paid ones only as a fallback.
+- feat(server): engine counters. For every search on sonar's own keys, the new table `engine_stats` (migration 00003) counts per UTC day, kind of search and engine how the engine's turn ended: `tried`, `answered`, `short`, `failed`, `timed_out`. It holds no query, no URL, no user and no row per search. `GET /api/admin/engine-stats?days=7` returns the counters with each engine's share of the answered searches and the free-versus-paid split; it needs the Registre role `admin` and answers 403 otherwise. See docs/hosted.md.
 - feat(engines): `SONAR_SEARXNG_POOL` adds one engine, `searxpool`, that rotates through a list of SearXNG instances; `SONAR_FREE_ENGINES` switches the key-less `ddg` and `bing` scrapers on for the hosted chain. Both are off by default. See docs/free-engines.md.
 
 ### Changed
