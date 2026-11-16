@@ -4,6 +4,8 @@ All notable changes are documented here. Format derives from Keep a Changelog.
 
 ## [Unreleased]
 
+## [v0.23.0] - 2026-11-16
+
 ### Added
 
 - feat(server): `SONAR_ADMINS`, a comma-separated list of Registre sign-in emails, names sonar's administrators. A signed-in account whose verified email is listed opens `/api/admin/*`; an empty or absent list lets nobody in. A Registre `admin` role still opens the routes too. The deployment forwards the variable from the compose env.
