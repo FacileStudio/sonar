@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/FacileStudio/porte"
 	"github.com/FacileStudio/sonar/internal/server/enginestats"
 	"github.com/FacileStudio/sonar/internal/server/modules/search"
 	troncerrors "github.com/FacileStudio/tronc/errors"
@@ -29,17 +28,6 @@ type EngineStats struct {
 
 type handler struct {
 	stats *enginestats.Store
-}
-
-func requireAdmin(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		identity, ok := porte.From(r.Context())
-		if !ok || !identity.HasRole(Role) {
-			httpjson.WriteError(w, troncerrors.Forbidden("this page is for sonar's administrators"))
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }
 
 func (h *handler) engineStats(w http.ResponseWriter, r *http.Request) {

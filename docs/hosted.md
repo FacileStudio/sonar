@@ -28,7 +28,11 @@ For every search on sonar's own keys, sonar counts how each engine's turn ended,
 
 Searches on a person's own keys, searches that name an engine (`!brave`, `engines=`) and `SONAR_WEB_ENGINES=all` are not counted. The write happens after the search, off the request path; a failed write is logged without the query and dropped.
 
-`GET /api/admin/engine-stats?days=7` (1 to 90 days, default 7) returns the daily rows and, per kind over the period, each engine's share of the answered searches and the split between free engines (no API key: SearXNG, `searxpool`, `ddg`, `bing`) and paid ones. It needs a session whose Registre roles hold `admin` and answers 403 to everyone else. Roles reach sonar only when the Registre client `sonar` has the `roles` scope with `admin` among its visible roles and sonar asks for that scope; until both are done the route answers 403 to everyone, and the table can be read in the database:
+`GET /api/admin/engine-stats?days=7` (1 to 90 days, default 7) returns the daily rows and, per kind over the period, each engine's share of the answered searches and the split between free engines (no API key: SearXNG, `searxpool`, `ddg`, `bing`) and paid ones. It answers 401 signed out and 403 to anyone who is not an administrator.
+
+An administrator is a signed-in account whose verified email is on `SONAR_ADMINS`, a comma-separated list of Registre sign-in addresses (case and spaces ignored), as Sablier's `SABLIER_ADMINS` and Courrier's `COURRIER_ADMINS` work. sonar reads the address from its own `porte_users` row, which only a verified Registre claim can write; an unverified address never counts. An empty or absent `SONAR_ADMINS` makes nobody an administrator. A session whose Registre roles hold `admin` is also let in, but sonar asks Registre for no roles today, so `SONAR_ADMINS` is the way in. To open the counters, sign in at https://sonar.facile.studio with a listed address, then open https://sonar.facile.studio/api/admin/engine-stats?days=7 in the same browser.
+
+The table can also be read in the database:
 
 ```sql
 SELECT day, kind, engine, tried, answered, short, failed, timed_out FROM engine_stats ORDER BY day DESC, kind, engine;
@@ -79,6 +83,7 @@ Both tools are read-only and open-world. Every call spends one search of the dai
 | `SONAR_WEB_ENOUGH` | Results that end a chain early, default 5. |
 | `SONAR_SUMMARY_ENGINES` | Where summary sources come from, default `tavily,exa,parallel`. `brave` is always dropped. |
 | `SONAR_AI_SUMMARY`, `BULLE_URL` | The AI summary, off by default. |
+| `SONAR_ADMINS` | Comma-separated Registre sign-in emails that may open `/api/admin/*`. Empty means nobody. |
 | `MCP_RESOURCE` | The MCP server's canonical URL, as Registre's seed declares it. Empty turns `/mcp` off. |
 | `TRUSTED_PROXIES` | `private,cloudflare` behind Traefik and Cloudflare. |
 

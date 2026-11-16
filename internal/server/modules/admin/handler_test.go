@@ -60,7 +60,7 @@ func signedInAs(identity porte.Identity) func(http.Handler) http.Handler {
 
 func get(stats *enginestats.Store, identity porte.Identity, target string) *httptest.ResponseRecorder {
 	router := chi.NewRouter()
-	admin.RegisterRoutes(router, stats, signedInAs(identity))
+	admin.RegisterRoutes(router, stats, admin.Admins{DB: stats.DB}, signedInAs(identity))
 	response := httptest.NewRecorder()
 	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, target, nil))
 	return response
