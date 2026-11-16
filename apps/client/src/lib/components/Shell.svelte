@@ -6,7 +6,6 @@
 	import { SONAR_ICON } from '$lib/icons';
 	import { session } from '$lib/session.svelte';
 	import { rememberLocale, t } from '$lib/i18n/index.svelte';
-	import { theme, type ThemeMode } from '$lib/theme.svelte';
 
 	let { search, children, wide = false }: { search?: Snippet; children: Snippet; wide?: boolean } = $props();
 
@@ -30,13 +29,9 @@
 	});
 
 	const menu = $derived({
-		subscription: { href: 'https://sso.facile.studio/spaces' },
 		settingsHref: '/settings',
 		helpHref: 'https://github.com/FacileStudio/sonar/blob/main/docs/hosted.md',
 		onSignOut: signOut,
-		onLocaleChange: rememberLocale,
-		theme: theme.mode,
-		onThemeChange: (next: string) => theme.set(next as ThemeMode),
 		invitations
 	});
 
